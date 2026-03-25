@@ -2,11 +2,11 @@
 
 const CACHE_NAME = 'belezaja-cache-v1';
 const urlsToCache = [
-  '/',
-  '/index.html',
-  '/style.css',
-  '/script.js',
-  '/manifest.json',
+  './',
+  './index.html',
+  './style.css',
+  './script.js',
+  './manifest.json',
   'https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css',
   'https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css'
 ];
