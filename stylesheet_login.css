@@ -68,3 +68,21 @@ body {
 
 
 }
+
+.acess button {
+    font-family: "Poppins", sans-serif;
+    font-weight: 700;
+    font-style: normal;
+    height: 3rem;
+    border-radius: 5px;
+    border: none;
+    background-color: white;
+    color: #553a73;
+}
+
+.acess button:hover {
+    cursor: pointer;
+    background-color: #553a73;
+    color: white;
+    border: solid 1px;
+}
