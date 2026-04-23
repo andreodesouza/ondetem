@@ -9,20 +9,61 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <style>
     :root { --primary: #553A73; --secondary: #3d2854; }
-    body { background:#f8f9fa; min-height:100vh; font-family:'Segoe UI', sans-serif; }
-    .sidebar { position:fixed; top:0; left:0; width:260px; height:100vh; background:linear-gradient(180deg, var(--primary) 0%, var(--secondary) 100%); color:#fff; z-index:1000; }
+    body { background:#f8f9fa; min-height:100vh; font-family:'Segoe UI', sans-serif; overflow-x: hidden; }
+    
+    /* Sidebar Responsiva */
+    .sidebar { 
+        position:fixed; top:0; left:0; width:260px; height:100vh; 
+        background:linear-gradient(180deg, var(--primary) 0%, var(--secondary) 100%); 
+        color:#fff; z-index:1100; transition: all 0.3s;
+    }
+    
+    .main-content { margin-left:260px; padding:20px; transition: all 0.3s; }
+
+    /* Estilos Mobile */
+    @media (max-width: 991.98px) {
+        .sidebar { left: -260px; }
+        .sidebar.active { left: 0; }
+        .main-content { margin-left: 0; padding-top: 70px; }
+        .sidebar-overlay { 
+            display: none; position: fixed; top: 0; left: 0; 
+            width: 100%; height: 100%; background: rgba(0,0,0,0.5); 
+            z-index: 1050; 
+        }
+        .sidebar-overlay.show { display: block; }
+    }
+
+    /* Navbar Mobile fixa no topo */
+    .mobile-header {
+        display: none;
+        position: fixed; top: 0; left: 0; width: 100%;
+        background: var(--primary); color: white;
+        padding: 10px 15px; z-index: 1040;
+        align-items: center; justify-content: space-between;
+    }
+    @media (max-width: 991.98px) { .mobile-header { display: flex; } }
+
     .nav-link { color:rgba(255,255,255,.8); padding:12px 20px; display:flex; align-items:center; cursor:pointer; border-left:4px solid transparent; transition: .3s; text-decoration: none; }
     .nav-link:hover, .nav-link.active { background:rgba(255,255,255,.1); color:#fff; border-left-color:#fff; }
-    .main-content { margin-left:260px; padding:30px; }
-    .card-custom { background:#fff; border-radius:15px; padding:25px; box-shadow:0 4px 12px rgba(0,0,0,.05); margin-bottom:25px; border: none; }
-    #map-perfil { height: 350px; border-radius: 15px; margin-top: 15px; border: 1px solid #ddd; cursor: crosshair; }
+    
+    .card-custom { background:#fff; border-radius:15px; padding:20px; box-shadow:0 4px 12px rgba(0,0,0,.05); margin-bottom:20px; border: none; }
+    #map-perfil { height: 300px; border-radius: 15px; margin-top: 15px; border: 1px solid #ddd; width: 100%; }
+    
     .slot-badge { background: #e9ecef; padding: 5px 12px; border-radius: 20px; margin: 4px; display: inline-flex; align-items: center; font-size: 0.85rem; border: 1px solid #dee2e6; }
-    .day-header { background: #f1f3f5; padding: 10px; border-radius: 8px; font-weight: bold; color: var(--primary); margin-top: 15px; }
   </style>
 </head>
 <body>
 
-<aside class="sidebar">
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+<div class="mobile-header shadow">
+    <button class="btn text-white fs-3 p-0" onclick="toggleSidebar()">
+        <i class="bi bi-list"></i>
+    </button>
+    <span class="fw-bold">Onde Tem?</span>
+    <div style="width: 30px;"></div> </div>
+
+<aside class="sidebar" id="sidebar">
   <div class="p-4 text-center border-bottom border-white border-opacity-10">
     <h4 class="fw-bold m-0">Onde Tem?</h4>
     <small class="opacity-75">Gestão Completa</small>
@@ -39,31 +80,39 @@
 </aside>
 
 <main class="main-content">
-  <header class="d-flex justify-content-between align-items-center mb-4">
+  <header class="d-none d-lg-flex justify-content-between align-items-center mb-4">
     <h3 class="fw-bold" id="sectionTitle">Dashboard</h3>
     <div class="bg-white p-2 rounded-pill px-4 shadow-sm border">
-        <span id="nomeLojaTopo" class="fw-bold text-dark">...</span>
+        <span id="nomeLojaTopo" class="fw-bold text-dark">Minha Loja</span>
     </div>
   </header>
 
+  <h4 class="fw-bold d-lg-none mb-4" id="sectionTitleMobile">Dashboard</h4>
+
   <section id="dashboard" class="content-section">
     <div class="row g-3">
-      <div class="col-md-6"><div class="card-custom text-center"><h5>0</h5><p class="text-muted mb-0">Agendamentos</p></div></div>
-      <div class="col-md-6"><div class="card-custom text-center"><h5 id="dash-serv-count">0</h5><p class="text-muted mb-0">Serviços Ativos</p></div></div>
+      <div class="col-6 col-md-6"><div class="card-custom text-center"><h5>0</h5><p class="text-muted mb-0 small">Agendamentos</p></div></div>
+      <div class="col-6 col-md-6"><div class="card-custom text-center"><h5 id="dash-serv-count">0</h5><p class="text-muted mb-0 small">Serviços Ativos</p></div></div>
     </div>
   </section>
 
   <section id="horarios" class="content-section d-none">
     <div class="card-custom">
-      <h5 class="fw-bold mb-4">Agenda Semanal</h5>
+      <h5 class="fw-bold mb-3">Agenda Semanal</h5>
       <div class="row g-2 align-items-end">
-        <div class="col-md-4">
+        <div class="col-12 col-md-4">
+          <label class="small text-muted">Dia</label>
           <select id="sel-dia" class="form-select">
             <option>Segunda</option><option>Terça</option><option>Quarta</option><option>Quinta</option><option>Sexta</option><option>Sábado</option><option>Domingo</option>
           </select>
         </div>
-        <div class="col-md-4"><input type="time" id="add-hora-slot" class="form-control"></div>
-        <div class="col-md-4"><button class="btn btn-primary w-100" onclick="adicionarSlot()">Abrir Horário</button></div>
+        <div class="col-7 col-md-4">
+          <label class="small text-muted">Hora</label>
+          <input type="time" id="add-hora-slot" class="form-control">
+        </div>
+        <div class="col-5 col-md-4">
+          <button class="btn btn-primary w-100" onclick="adicionarSlot()">Abrir</button>
+        </div>
       </div>
       <div id="agenda-render" class="mt-4"></div>
     </div>
@@ -73,35 +122,53 @@
     <div class="card-custom">
       <h5 class="fw-bold mb-4">Serviços e Preços</h5>
       <div class="row g-2 mb-4">
-        <div class="col-md-6"><input type="text" id="s-nome" class="form-control" placeholder="Serviço"></div>
-        <div class="col-md-4"><input type="number" id="s-preco" class="form-control" placeholder="Preço R$"></div>
-        <div class="col-md-2"><button class="btn btn-danger w-100" onclick="adicionarServico()">Add</button></div>
+        <div class="col-12 col-md-6"><input type="text" id="s-nome" class="form-control" placeholder="Ex: Corte de Cabelo"></div>
+        <div class="col-8 col-md-4"><input type="number" id="s-preco" class="form-control" placeholder="Preço R$"></div>
+        <div class="col-4 col-md-2"><button class="btn btn-danger w-100" onclick="adicionarServico()">Add</button></div>
       </div>
       <div id="lista-serv-ui" class="list-group list-group-flush"></div>
     </div>
   </section>
 
-  <section id="perfil" class="content-section d-none">
-    <div class="card-custom">
-      <h5 class="fw-bold mb-4">Localização da Loja</h5>
-      <div class="row g-3">
-        <div class="col-md-6"><label class="form-label">Nome Fantasia</label><input type="text" id="edit-fantasia" class="form-control"></div>
-        <div class="col-md-6">
-          <label class="form-label">CEP</label>
-          <div class="input-group">
-            <input type="text" id="edit-cep" class="form-control" placeholder="28990-000">
-            <button class="btn btn-dark" onclick="buscarCEP()">Buscar</button>
-          </div>
-        </div>
-        <div class="col-12"><label class="form-label">Endereço</label><input type="text" id="edit-end" class="form-control" readonly></div>
-        <div class="col-12"><small class="text-primary fw-bold"><i class="bi bi-cursor"></i> Clique no mapa ou arraste o marcador para ajuste manual.</small></div>
-        <div class="col-12"><div id="map-perfil"></div></div>
+<section id="perfil" class="content-section d-none">
+  <div class="card-custom">
+    <h5 class="fw-bold mb-4">Configurações da Loja</h5>
+    <div class="row g-3">
+      
+      <div class="col-12 col-md-6">
+        <label class="form-label">Nome Fantasia</label>
+        <input type="text" id="edit-fantasia" class="form-control">
       </div>
-      <div class="text-center mt-4">
-        <button class="btn btn-danger px-5 rounded-pill shadow" onclick="salvarConfigGeral()">Salvar e Publicar</button>
+
+      <div class="col-12 col-md-6">
+        <label class="form-label">Nome da Rua / Logradouro</label>
+        <div class="input-group position-relative"> <input type="text" id="edit-rua" class="form-control" placeholder="Comece a digitar o nome da rua..." oninput="autoCompleteRua()">
+          <button class="btn btn-dark" onclick="buscarPorRua()">Localizar</button>
+          
+          <div id="sugestoes-rua" class="list-group position-absolute w-100 shadow" style="top: 100%; z-index: 2000; display: none; max-height: 200px; overflow-y: auto;"></div>
+        </div>
+      </div>
+
+      <div class="col-12">
+        <label class="form-label">Endereço Completo (Confirmado pelo GPS)</label>
+        <input type="text" id="edit-end" class="form-control" readonly style="background-color: #e9ecef;">
+      </div>
+
+      <div class="col-12">
+        <small class="text-primary fw-bold">
+          <i class="bi bi-cursor"></i> Se o ponto não estiver exato, arraste o marcador vermelho no mapa.
+        </small>
+        <div id="map-perfil" class="mt-2"></div>
       </div>
     </div>
-  </section>
+
+    <div class="text-center mt-4">
+      <button class="btn btn-danger w-100 w-md-auto px-5 rounded-pill shadow" onclick="salvarConfigGeral()">
+        Salvar e Publicar
+      </button>
+    </div>
+  </div>
+</section>
 </main>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -147,26 +214,56 @@
     localStorage.setItem('usuario_logado', JSON.stringify(s));
   }
 
-  async function buscarCEP() {
-    const cep = document.getElementById('edit-cep').value.replace(/\D/g, '');
-    const res = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
-    const data = await res.json();
-    if(data.erro) return alert("CEP não encontrado");
+async function buscarPorRua() {
+    const rua = document.getElementById('edit-rua').value;
+    
+    if (rua.length < 3) return alert("Digite o nome da rua para buscar.");
 
-    const fullEnd = `${data.logradouro}, ${data.bairro}, Saquarema - RJ`;
-    document.getElementById('edit-end').value = fullEnd;
+    // Busca apenas pela Rua em Saquarema
+    const queryBusca = `${rua}, Saquarema, RJ, Brasil`;
 
-    const geo = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(fullEnd)}`);
-    const gData = await geo.json();
-    if(gData.length > 0) {
-      const lat = parseFloat(gData[0].lat), lon = parseFloat(gData[0].lon);
-      map.setView([lat, lon], 17);
-      criarOuMoverMarcador(lat, lon);
-      const s = JSON.parse(localStorage.getItem('usuario_logado'));
-      s.endereco = fullEnd;
-      localStorage.setItem('usuario_logado', JSON.stringify(s));
+    try {
+        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(queryBusca)}`);
+        const data = await res.json();
+
+        if (data.length > 0) {
+            const lat = parseFloat(data[0].lat);
+            const lon = parseFloat(data[0].lon);
+            const enderecoFormatado = data[0].display_name;
+
+            document.getElementById('edit-end').value = enderecoFormatado;
+
+            map.setView([lat, lon], 17);
+            criarOuMoverMarcador(lat, lon);
+
+            const s = JSON.parse(localStorage.getItem('usuario_logado'));
+            s.endereco = enderecoFormatado;
+            s.lat = lat;
+            s.lng = lon;
+            localStorage.setItem('usuario_logado', JSON.stringify(s));
+
+        } else {
+            alert("Não encontramos esse endereço. Tente digitar o nome da rua e o número.");
+        }
+    } catch (error) {
+        console.error("Erro na geolocalização:", error);
+        alert("Erro ao localizar no mapa.");
     }
-  }
+}
+
+// Certifique-se que a função de mover marcador continua ativa
+function criarOuMoverMarcador(lat, lng) {
+    if (marker) {
+        marker.setLatLng([lat, lng]);
+    } else {
+        marker = L.marker([lat, lng], { draggable: true }).addTo(map);
+        marker.on('dragend', function() {
+            const p = marker.getLatLng();
+            atualizarLocalSessao(p.lat, p.lng);
+        });
+    }
+    atualizarLocalSessao(lat, lng);
+}
 
   function adicionarSlot() {
     const dia = document.getElementById('sel-dia').value, hora = document.getElementById('add-hora-slot').value;
@@ -237,13 +334,128 @@
     window.location.reload();
   }
 
-  function showSection(id) {
-    document.querySelectorAll('.content-section').forEach(s => s.classList.add('d-none'));
-    document.getElementById(id).classList.remove('d-none');
-    if(id === 'perfil') setTimeout(() => map.invalidateSize(), 300);
-  }
+
 
   function logout() { localStorage.removeItem('usuario_logado'); window.location.href = 'index.html'; }
+
+  // Função para abrir/fechar menu no mobile
+    function toggleSidebar() {
+        document.getElementById('sidebar').classList.toggle('active');
+        document.getElementById('sidebarOverlay').classList.toggle('show');
+    }
+
+function showSection(sectionId) {
+    // 1. Esconder todas as seções
+    document.querySelectorAll('.content-section').forEach(s => s.classList.add('d-none'));
+    
+    // 2. Mostrar a seção selecionada
+    const targetSection = document.getElementById(sectionId);
+    if (targetSection) {
+        targetSection.classList.remove('d-none');
+    }
+
+    // 3. CORREÇÃO DO MAPA: Se for a seção de perfil, força o Leaflet a recalcular o tamanho
+    if (sectionId === 'perfil' && map) {
+        setTimeout(() => {
+            map.invalidateSize();
+        }, 300); // O delay é necessário para esperar o container aparecer
+    }
+
+    // 4. Atualizar os títulos na interface
+    const titles = {
+        'dashboard': 'Dashboard',
+        'horarios': 'Minha Agenda',
+        'servicos': 'Serviços',
+        'perfil': 'Perfil e Mapa'
+    };
+    
+    if (titles[sectionId]) {
+        document.getElementById('sectionTitle').innerText = titles[sectionId];
+        const mobileTitle = document.getElementById('sectionTitleMobile');
+        if (mobileTitle) mobileTitle.innerText = titles[sectionId];
+    }
+
+    // 5. Fechar sidebar no mobile se estiver aberta
+    if (window.innerWidth < 992) {
+        const sidebar = document.getElementById('sidebar');
+        if (sidebar && sidebar.classList.contains('active')) {
+            toggleSidebar();
+        }
+    }
+
+    // 6. Atualizar o estado visual dos botões no menu (classe active)
+    document.querySelectorAll('.nav-link').forEach(link => {
+        link.classList.remove('active');
+        // Se o texto do link ou o atributo de clique corresponder à seção, marca como ativo
+        if (link.getAttribute('onclick').includes(`'${sectionId}'`)) {
+            link.classList.add('active');
+        }
+    });
+}
+let timeoutAutoComplete;
+
+async function autoCompleteRua() {
+    const input = document.getElementById('edit-rua').value;
+    const lista = document.getElementById('sugestoes-rua');
+
+    // Limpa o timer anterior (evita fazer requisições demais enquanto digita)
+    clearTimeout(timeoutAutoComplete);
+
+    if (input.length < 4) {
+        lista.style.display = 'none';
+        return;
+    }
+
+    // Aguarda o usuário parar de digitar por 300ms
+    timeoutAutoComplete = setTimeout(async () => {
+        try {
+            // Busca sugestões focadas em Saquarema
+            const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(input + ", Saquarema")}&limit=5`);
+            const data = await res.json();
+
+            if (data.length > 0) {
+                lista.innerHTML = data.map(item => `
+                    <button type="button" class="list-group-item list-group-item-action" 
+                        onclick="selecionarSugestao('${item.display_name}', ${item.lat}, ${item.lon})">
+                        ${item.display_name}
+                    </button>
+                `).join('');
+                lista.style.display = 'block';
+            } else {
+                lista.style.display = 'none';
+            }
+        } catch (e) {
+            console.error("Erro no autocomplete", e);
+        }
+    }, 300);
+}
+
+function selecionarSugestao(nomeCompleto, lat, lon) {
+    // 1. Preenche os campos
+    document.getElementById('edit-rua').value = nomeCompleto.split(',')[0]; // Pega só o início do nome
+    document.getElementById('edit-end').value = nomeCompleto;
+    
+    // 2. Esconde a lista
+    document.getElementById('sugestoes-rua').style.display = 'none';
+
+    // 3. Move o mapa e marcador
+    map.setView([lat, lon], 17);
+    criarOuMoverMarcador(lat, lon);
+
+    // 4. Salva na sessão
+    const s = JSON.parse(localStorage.getItem('usuario_logado'));
+    s.endereco = nomeCompleto;
+    s.lat = lat;
+    s.lng = lon;
+    localStorage.setItem('usuario_logado', JSON.stringify(s));
+}
+
+// Fechar sugestões se clicar fora
+document.addEventListener('click', function(e) {
+    if (!document.getElementById('edit-rua').contains(e.target)) {
+        document.getElementById('sugestoes-rua').style.display = 'none';
+    }
+});
 </script>
 </body>
 </html>
