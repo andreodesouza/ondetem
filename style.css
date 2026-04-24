@@ -171,7 +171,7 @@ html, body {
 
     .listings-side {
         position: relative;
-        margin-top: 50vh; /* Começa na metade da tela */
+        margin-top: 35vh; /* Começa na metade da tela */
         height: 100vh;   /* Permite rolar até o topo */
         z-index: 100;
         border-radius: 25px 25px 0 0;
