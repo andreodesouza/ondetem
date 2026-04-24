@@ -190,34 +190,42 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- AGENDAMENTO DINÂMICO ---
+// --- AGENDAMENTO DINÂMICO (COM MODAL BONITO) ---
     document.addEventListener('click', (e) => {
         if (e.target.classList.contains('btn-agendar-real')) {
+            
+            const usuarioAtivo = JSON.parse(localStorage.getItem('usuario_logado'));
+
+            if (!usuarioAtivo) {
+                // 1. Em vez de alert, abrimos o nosso novo modal de aviso
+                const modalAviso = new bootstrap.Modal(document.getElementById('modalAvisoLogin'));
+                modalAviso.show();
+                return; 
+            }
+
+            // 2. Se logado, segue o fluxo normal
             const email = e.target.getAttribute('data-email');
             const nome = e.target.getAttribute('data-nome');
-            const agenda = JSON.parse(localStorage.getItem(`agenda_${email}`)) || {};
             
             const modalLabel = document.getElementById('modalAgendamentoLabel');
             if(modalLabel) modalLabel.innerText = `Agendar em: ${nome}`;
 
-            const selectHora = document.getElementById('horaAgendamento');
-            if(selectHora) {
-                selectHora.innerHTML = '<option value="">Selecione um horário...</option>';
-                const diasSemana = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
-                const hoje = diasSemana[new Date().getDay()];
-                const slots = agenda[hoje] || [];
-
-                slots.forEach(s => {
-                    if (!s.ocupado) selectHora.innerHTML += `<option value="${s.hora}">${s.hora}</option>`;
-                });
-
-                if (slots.length === 0) {
-                    ['09:00', '10:00', '14:00', '16:00'].forEach(h => selectHora.innerHTML += `<option>${h}</option>`);
-                }
-            }
+            // ... (restante do seu código de preencher horários) ...
+            
             if(bModal) bModal.show();
         }
     });
+
+    // Função auxiliar para trocar de modal suavemente
+    window.irParaLogin = function() {
+        const modalAviso = bootstrap.Modal.getInstance(document.getElementById('modalAvisoLogin'));
+        modalAviso.hide();
+        
+        setTimeout(() => {
+            const modalLogin = new bootstrap.Modal(document.getElementById('modalLogin'));
+            modalLogin.show();
+        }, 400); // Pequeno delay para a animação de saída terminar
+    };
 
     if(formAgendamento) {
         formAgendamento.addEventListener('submit', async (e) => {
@@ -360,3 +368,4 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
+
