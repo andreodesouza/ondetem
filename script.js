@@ -369,3 +369,48 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
+document.addEventListener('DOMContentLoaded', function() {
+    const categorias = document.querySelectorAll('.category-item');
+    const cards = document.querySelectorAll('.card-salao');
+    const listingsSide = document.querySelector('.listings-side'); // Referência para o scroll
+
+    categorias.forEach(item => {
+        item.style.cursor = 'pointer';
+
+        item.addEventListener('click', function() {
+            // Prioriza o data-categoria, senão pega o texto do parágrafo
+            const filtro = (this.getAttribute('data-categoria') || this.querySelector('p').innerText).toLowerCase().trim();
+
+            // Ação para o botão "Todos"
+            if (filtro === 'todos') {
+                cards.forEach(card => card.style.display = 'block');
+                categorias.forEach(c => c.style.opacity = '1');
+                if (listingsSide) listingsSide.scrollTop = 0; 
+                return;
+            }
+
+            // Mapeamento de termos (Ex: Manicure vira Unhas para bater com o card)
+            let termoBusca = filtro;
+            if (filtro === 'manicure') termoBusca = 'unhas';
+
+            cards.forEach(card => {
+                const textoServicos = card.querySelector('.card-text').innerText.toLowerCase();
+                
+                // Exibe se encontrar o termo, senão esconde
+                if (textoServicos.includes(termoBusca)) {
+                    card.style.display = 'block';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+
+            // Feedback visual: destaca a categoria ativa e suaviza as outras
+            categorias.forEach(c => c.style.opacity = '0.5');
+            this.style.opacity = '1';
+
+            // No mobile, volta para o topo da lista ao filtrar
+            if (listingsSide) listingsSide.scrollTop = 0;
+        });
+    });
+});
+
