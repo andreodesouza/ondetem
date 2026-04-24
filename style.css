@@ -232,3 +232,10 @@ html, body {
     background-color: #553A73; /* Mantendo seu roxo principal */
 }
 
+.card-ativo-mapa {
+    border: 2px solid #553A73 !important; /* Roxo do seu painel */
+    box-shadow: 0 0 15px rgba(85, 58, 115, 0.3) !important;
+    transform: translateY(-5px);
+    transition: all 0.3s ease;
+}
+

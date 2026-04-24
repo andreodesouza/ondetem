@@ -120,6 +120,14 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // Adicione isso logo após o loop que cria os marcadores
+        document.querySelectorAll('.card-salao').forEach(card => {
+            card.addEventListener('click', () => {
+                const index = card.getAttribute('data-index');
+                selecionarSalao(parseInt(index));
+            });
+        });
+
     function selecionarSalao(indexAtivo) {
         const cardsElements = document.querySelectorAll('.card-salao');
         marcadores.forEach((m, i) => {
