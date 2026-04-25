@@ -106,8 +106,11 @@ document.addEventListener('DOMContentLoaded', () => {
                                 <span class="small fw-bold"><i class="bi bi-star-fill text-warning"></i> ${salao.isNovo ? '5.0' : '4.8'} (<span id="dist-${index}">...</span>)</span>
                             </div>
                             <p class="card-text text-muted small mb-3">${salao.servicos}</p>
-                            <div class="mt-auto">
-                                <button class="btn btn-danger w-100 rounded-pill btn-agendar-real" data-email="${salao.email}" data-nome="${salao.nome}">Agendar</button>
+                            <div class="mt-auto d-flex gap-2">
+                                <button class="btn btn-danger flex-fill rounded-pill btn-agendar-real" data-email="${salao.email}" data-nome="${salao.nome}">Agendar</button>
+                                <button class="btn btn-outline-danger rounded-pill btn-favoritar" data-nome="${salao.nome}" data-img="${salao.img}" data-servicos="${salao.servicos}" title="Favoritar">
+                                    <i class="bi bi-heart"></i>
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -237,14 +240,101 @@ document.addEventListener('DOMContentLoaded', () => {
             setTimeout(() => {
                 statusPagamento.innerHTML = '<b class="text-success">Pagamento Aprovado!</b>';
                 setTimeout(() => {
+                    // Salvar agendamento no localStorage do usuario
+                    const usuarioAtivo = JSON.parse(localStorage.getItem('usuario_logado'));
+                    if (usuarioAtivo && usuarioAtivo.tipo === 'cliente') {
+                        const chave = `agendamentos_${usuarioAtivo.email}`;
+                        const agendamentos = JSON.parse(localStorage.getItem(chave)) || [];
+                        agendamentos.push({
+                            salao: document.getElementById('modalAgendamentoLabel').innerText.replace('Agendar em: ', ''),
+                            data: document.getElementById('dataAgendamento').value,
+                            hora: document.getElementById('horaAgendamento').value,
+                            pagamento: document.getElementById('metodoPagamento').value,
+                            status: 'confirmado',
+                            criadoEm: new Date().toISOString()
+                        });
+                        localStorage.setItem(chave, JSON.stringify(agendamentos));
+                    }
+
                     if(bModal) bModal.hide();
                     formAgendamento.reset();
                     statusPagamento.innerHTML = '';
                     btnSubmit.disabled = false;
                     btnSubmit.innerText = 'Confirmar e Pagar';
                     alert("Sucesso! Agendamento confirmado.");
+
+                    // Solicitar permissao de notificacao apos agendar
+                    if ('Notification' in window && Notification.permission === 'default') {
+                        setTimeout(() => {
+                            if (confirm('Deseja ativar notificacoes para receber lembretes do seu agendamento?')) {
+                                Notification.requestPermission().then(perm => {
+                                    if (perm === 'granted') {
+                                        const badge = document.getElementById('badge-notificacao');
+                                        if (badge) badge.classList.remove('d-none');
+                                        verificarAgendamentosProximos();
+                                    }
+                                });
+                            }
+                        }, 500);
+                    } else if ('Notification' in window && Notification.permission === 'granted') {
+                        verificarAgendamentosProximos();
+                    }
                 }, 2000);
             }, 1500);
+        });
+    }
+
+    // --- FAVORITAR SALAO ---
+    document.addEventListener('click', (e) => {
+        const btnFav = e.target.closest('.btn-favoritar');
+        if (!btnFav) return;
+        e.stopPropagation();
+
+        const usuarioAtivo = JSON.parse(localStorage.getItem('usuario_logado'));
+        if (!usuarioAtivo || usuarioAtivo.tipo !== 'cliente') {
+            const modalAviso = new bootstrap.Modal(document.getElementById('modalAvisoLogin'));
+            modalAviso.show();
+            return;
+        }
+
+        const nome = btnFav.getAttribute('data-nome');
+        const img = btnFav.getAttribute('data-img');
+        const servicos = btnFav.getAttribute('data-servicos');
+        const chave = `favoritos_${usuarioAtivo.email}`;
+        const favoritos = JSON.parse(localStorage.getItem(chave)) || [];
+
+        const jaFavoritou = favoritos.findIndex(f => f.nome === nome);
+        const icone = btnFav.querySelector('i');
+
+        if (jaFavoritou >= 0) {
+            favoritos.splice(jaFavoritou, 1);
+            icone.classList.remove('bi-heart-fill');
+            icone.classList.add('bi-heart');
+            btnFav.classList.remove('btn-danger');
+            btnFav.classList.add('btn-outline-danger');
+        } else {
+            favoritos.push({ nome, img, servicos });
+            icone.classList.remove('bi-heart');
+            icone.classList.add('bi-heart-fill');
+            btnFav.classList.remove('btn-outline-danger');
+            btnFav.classList.add('btn-danger');
+        }
+        localStorage.setItem(chave, JSON.stringify(favoritos));
+    });
+
+    // Marcar favoritos ja existentes ao carregar
+    const sessaoFav = JSON.parse(localStorage.getItem('usuario_logado'));
+    if (sessaoFav && sessaoFav.tipo === 'cliente') {
+        const favs = JSON.parse(localStorage.getItem(`favoritos_${sessaoFav.email}`)) || [];
+        document.querySelectorAll('.btn-favoritar').forEach(btn => {
+            const nome = btn.getAttribute('data-nome');
+            if (favs.find(f => f.nome === nome)) {
+                const icone = btn.querySelector('i');
+                icone.classList.remove('bi-heart');
+                icone.classList.add('bi-heart-fill');
+                btn.classList.remove('btn-outline-danger');
+                btn.classList.add('btn-danger');
+            }
         });
     }
 
@@ -339,7 +429,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <i class="bi bi-person-circle me-2"></i> ${nomeExibicao}
                     </button>
                     <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2 rounded-3">
-                        <li><a class="dropdown-item py-2" href="#"><i class="bi bi-person me-2"></i>Meu Perfil</a></li>
+                        <li><a class="dropdown-item py-2" href="${sessao.tipo === 'empresa' ? 'painel-empresa.html' : 'painel-usuario.html'}"><i class="bi bi-person me-2"></i>Meu Painel</a></li>
                         <li><hr class="dropdown-divider"></li>
                         <li><a class="dropdown-item py-2 text-danger" href="#" id="fazerLogout"><i class="bi bi-box-arrow-right me-2"></i>Sair</a></li>
                     </ul>
@@ -352,7 +442,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// --- NOTIFICAÇÕES ---
+// --- NOTIFICAÇÕES E LEMBRETES DE AGENDAMENTO ---
 document.addEventListener('DOMContentLoaded', () => {
     const btnNotificacao = document.getElementById('btn-notificacao');
     const badge = document.getElementById('badge-notificacao');
@@ -362,12 +452,110 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!('Notification' in window)) return alert('Navegador sem suporte.');
             const permissao = await Notification.requestPermission();
             if (permissao === 'granted') {
-                alert('Notificações ativadas!');
+                alert('Notificações ativadas! Você receberá lembretes dos seus agendamentos.');
                 if(badge) badge.classList.remove('d-none');
             }
         });
     }
+
+    // Iniciar verificacao de lembretes
+    iniciarLembretesAgendamento();
 });
+
+// Sistema de lembretes de agendamento
+function iniciarLembretesAgendamento() {
+    if (!('Notification' in window)) return;
+
+    // Verificar imediatamente e depois a cada 60 segundos
+    verificarAgendamentosProximos();
+    setInterval(verificarAgendamentosProximos, 60000);
+}
+
+function verificarAgendamentosProximos() {
+    if (Notification.permission !== 'granted') return;
+
+    const sessao = JSON.parse(localStorage.getItem('usuario_logado'));
+    if (!sessao || sessao.tipo !== 'cliente') return;
+
+    const agendamentos = JSON.parse(localStorage.getItem(`agendamentos_${sessao.email}`)) || [];
+    const notificacoesEnviadas = JSON.parse(localStorage.getItem(`notif_enviadas_${sessao.email}`)) || {};
+    const agora = new Date();
+    const hojeStr = `${agora.getFullYear()}-${String(agora.getMonth()+1).padStart(2,'0')}-${String(agora.getDate()).padStart(2,'0')}`;
+
+    agendamentos.forEach((ag, index) => {
+        if (ag.status !== 'confirmado' && ag.status !== 'pendente') return;
+        if (!ag.data || !ag.hora) return;
+
+        const chaveNotifDia = `dia_${ag.data}_${index}`;
+        const chaveNotifHora = `hora_${ag.data}_${ag.hora}_${index}`;
+
+        // Notificacao do dia: se o agendamento e hoje e ainda nao notificou
+        if (ag.data === hojeStr && !notificacoesEnviadas[chaveNotifDia]) {
+            enviarNotificacao(
+                'Agendamento hoje!',
+                `Voce tem um agendamento em ${ag.salao || 'um salao'} hoje as ${ag.hora}.`,
+                chaveNotifDia,
+                sessao.email
+            );
+        }
+
+        // Notificacao da hora: se falta 1 hora ou menos e ainda nao notificou
+        const [horaAg, minAg] = ag.hora.split(':').map(Number);
+        const dataAgendamento = new Date(`${ag.data}T${ag.hora}:00`);
+        const diffMs = dataAgendamento.getTime() - agora.getTime();
+        const diffMinutos = diffMs / 60000;
+
+        if (diffMinutos > 0 && diffMinutos <= 60 && !notificacoesEnviadas[chaveNotifHora]) {
+            const minRestantes = Math.round(diffMinutos);
+            enviarNotificacao(
+                'Agendamento em breve!',
+                `Faltam ${minRestantes} minuto(s) para seu agendamento em ${ag.salao || 'um salao'} as ${ag.hora}.`,
+                chaveNotifHora,
+                sessao.email
+            );
+        }
+    });
+
+    // Limpar notificacoes antigas (mais de 2 dias)
+    limparNotificacoesAntigas(sessao.email);
+}
+
+function enviarNotificacao(titulo, corpo, chaveNotif, email) {
+    try {
+        new Notification(titulo, {
+            body: corpo,
+            icon: 'icon-192.png',
+            tag: chaveNotif,
+            requireInteraction: true
+        });
+
+        // Marcar como enviada
+        const enviadas = JSON.parse(localStorage.getItem(`notif_enviadas_${email}`)) || {};
+        enviadas[chaveNotif] = new Date().toISOString();
+        localStorage.setItem(`notif_enviadas_${email}`, JSON.stringify(enviadas));
+    } catch (e) {
+        console.error('Erro ao enviar notificacao:', e);
+    }
+}
+
+function limparNotificacoesAntigas(email) {
+    const enviadas = JSON.parse(localStorage.getItem(`notif_enviadas_${email}`)) || {};
+    const limite = new Date();
+    limite.setDate(limite.getDate() - 2);
+    let mudou = false;
+
+    Object.keys(enviadas).forEach(chave => {
+        const dataEnvio = new Date(enviadas[chave]);
+        if (dataEnvio < limite) {
+            delete enviadas[chave];
+            mudou = true;
+        }
+    });
+
+    if (mudou) {
+        localStorage.setItem(`notif_enviadas_${email}`, JSON.stringify(enviadas));
+    }
+}
 
 document.addEventListener('DOMContentLoaded', function() {
     const categorias = document.querySelectorAll('.category-item');
