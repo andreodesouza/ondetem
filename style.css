@@ -1,224 +1,221 @@
 /* --- CONFIGURAÇÕES BASE --- */
-html,
-body {
-  height: 100%;
-  margin: 0;
-  font-family: "Segoe UI", Arial, sans-serif;
-  background-color: #f8f9fa;
-  color: #333;
-  overflow: hidden; /* Trava o scroll geral para o efeito Airbnb funcionar */
+html, body {
+    height: 100%;
+    margin: 0;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    background-color: #f8f9fa;
+    color: #333;
+    overflow: hidden; /* Trava o scroll geral para o efeito Airbnb funcionar */
 }
 
 /* Cores do Design (Roxo Principal) */
 .btn-danger {
-  background-color: #553a73;
-  border-color: #553a73;
+    background-color: #553A73;
+    border-color: #553A73;
 }
 .btn-danger:hover {
-  background-color: #442e5c;
-  border-color: #442e5c;
+    background-color: #442e5c;
+    border-color: #442e5c;
 }
 .text-danger {
-  color: #553a73 !important;
+    color: #553A73 !important;
 }
 
 /* --- ESTRUTURA SPLIT SCREEN (AIRBNB STYLE) --- */
 .main-split-container {
-  display: flex;
-  height: calc(100vh - 73px); /* Altura total menos o header */
-  margin-top: 73px; /* Compensação do header fixo */
+    display: flex;
+    height: calc(100vh - 73px); /* Altura total menos o header */
+    margin-top: 73px; /* Compensação do header fixo */
 }
 
 /* Lado Esquerdo: Lista Rolável */
 .listings-side {
-  flex: 1.2;
-  overflow-y: auto;
-  background: #fff;
-  scrollbar-width: none; /* Esconde scroll no Firefox */
+    flex: 1.2;
+    overflow-y: auto;
+    background: #fff;
+    scrollbar-width: none; /* Esconde scroll no Firefox */
 }
 .listings-side::-webkit-scrollbar {
-  display: none; /* Esconde scroll no Chrome/Safari */
+    display: none; /* Esconde scroll no Chrome/Safari */
 }
 
 /* Lado Direito: Mapa Fixo */
 .map-side {
-  flex: 2;
-  position: sticky;
-  top: 0;
-  height: 100%;
+    flex: 2;
+    position: sticky;
+    top: 0;
+    height: 100%;
 }
 #map {
-  height: 100%;
-  width: 100%;
-  z-index: 1;
+    height: 100%;
+    width: 100%;
+    z-index: 1;
 }
 
 /* --- CATEGORIAS (BOLINHAS) --- */
 .categories-wrapper {
-  display: flex;
-  justify-content: flex-start;
-  align-items: center;
-  gap: 32px; /* Espaçamento elegante entre categorias */
-  overflow-x: auto;
-  padding: 15px 20px;
-  scrollbar-width: none;
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    gap: 32px; /* Espaçamento elegante entre categorias */
+    overflow-x: auto;
+    padding: 15px 20px;
+    scrollbar-width: none;
 }
 
 .categories-wrapper::-webkit-scrollbar {
-  display: none;
+    display: none;
 }
 
 /* Centraliza no Desktop */
 @media (min-width: 769px) {
-  .categories-wrapper {
-    justify-content: center;
-  }
+    .categories-wrapper {
+        justify-content: center;
+    }
 }
 
 .category-item {
-  flex: 0 0 auto;
-  min-width: 70px;
-  cursor: pointer;
-  text-align: center;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+    flex: 0 0 auto;
+    min-width: 70px;
+    cursor: pointer;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
 
 .icon-circle {
-  width: 60px;
-  height: 60px;
-  background-color: white;
-  border-radius: 50%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  margin-bottom: 10px;
-  font-size: 1.6rem;
-  color: #553a73;
-  transition: all 0.2s ease-in-out;
-  border: 1px solid #eee;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    width: 60px;
+    height: 60px;
+    background-color: white;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 10px;
+    font-size: 1.6rem;
+    color: #553A73;
+    transition: all 0.2s ease-in-out;
+    border: 1px solid #eee;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
 }
 
 .category-item:hover .icon-circle {
-  transform: translateY(-3px);
-  border-color: #553a73;
-  box-shadow: 0 4px 8px rgba(85, 58, 115, 0.15);
+    transform: translateY(-3px);
+    border-color: #553A73;
+    box-shadow: 0 4px 8px rgba(85, 58, 115, 0.15);
 }
 
 .category-item p {
-  font-size: 0.85rem;
-  font-weight: 500;
-  color: #444;
-  margin-bottom: 0;
-  white-space: nowrap;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: #444;
+    margin-bottom: 0;
+    white-space: nowrap;
 }
 
 /* --- CARDS DE SERVIÇO --- */
 .service-card {
-  border: none;
-  border-radius: 15px;
-  overflow: hidden;
-  transition: all 0.3s ease;
-  background: #fff;
+    border: none;
+    border-radius: 15px;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    background: #fff;
 }
 
 .service-card img {
-  height: 200px;
-  object-fit: cover;
-  border-radius: 15px 15px 0 0;
+    height: 200px;
+    object-fit: cover;
+    border-radius: 15px 15px 0 0;
 }
 
 .service-card:hover {
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15) !important;
+    box-shadow: 0 8px 16px rgba(0,0,0,0.15) !important;
 }
 
 .card-ativo-mapa {
-  border: 2px solid #553a73 !important;
-  transform: translateY(-5px);
-  box-shadow: 0 10px 20px rgba(85, 58, 115, 0.2) !important;
+    border: 2px solid #553A73 !important;
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(85, 58, 115, 0.2) !important;
 }
 
 /* --- BUSCA MOBILE --- */
 #input-busca-mobile {
-  width: 0;
-  transition: width 0.3s ease;
+    width: 0;
+    transition: width 0.3s ease;
 }
 #input-busca-mobile.ativo {
-  width: 150px;
-  display: block !important;
+    width: 150px;
+    display: block !important;
 }
 
 /* --- RESPONSIVIDADE (GAVETA MOBILE) --- */
 @media (max-width: 768px) {
-  html,
-  body {
-    overflow: hidden; /* Impede a página toda de rolar */
-  }
+    html, body {
+        overflow: hidden; /* Impede a página toda de rolar */
+    }
+    
+    .main-split-container {
+        flex-direction: column;
+        height: calc(100vh - 73px);
+        position: relative;
+    }
 
-  .main-split-container {
-    flex-direction: column;
-    height: calc(100vh - 73px);
-    position: relative;
-  }
+    .map-side {
+        position: absolute;
+        top: 0; left: 0;
+        width: 100%;
+        height: 100%; /* Mapa ocupa o fundo todo */
+        z-index: 1;
+    }
 
-  .map-side {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%; /* Mapa ocupa o fundo todo */
-    z-index: 1;
-  }
+    .listings-side {
+        position: relative;
+        margin-top: 35vh; /* Começa na metade da tela */
+        height: 100vh;   /* Permite rolar até o topo */
+        z-index: 100;
+        border-radius: 25px 25px 0 0;
+        box-shadow: 0 -5px 20px rgba(0,0,0,0.2);
+        background: #fff;
+        overflow-y: auto; /* Só a lista rola */
+        padding-bottom: 150px;
+    }
 
-  .listings-side {
-    position: relative;
-    margin-top: 35vh; /* Começa na metade da tela */
-    height: 100vh; /* Permite rolar até o topo */
-    z-index: 100;
-    border-radius: 25px 25px 0 0;
-    box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.2);
-    background: #fff;
-    overflow-y: auto; /* Só a lista rola */
-    padding-bottom: 150px;
-  }
-
-  /* Barrinha cinza de puxar (visual) */
-  .listings-side::before {
-    content: "";
-    width: 40px;
-    height: 5px;
-    background: #ccc;
-    border-radius: 10px;
-    margin: 15px auto;
-    display: block;
-  }
-
-  /* Fixa as categorias no topo da gaveta ao rolar */
-  .categories-section {
-    position: sticky;
-    top: 0;
-    background: white;
-    z-index: 1000;
-  }
+    /* Barrinha cinza de puxar (visual) */
+    .listings-side::before {
+        content: "";
+        width: 40px;
+        height: 5px;
+        background: #ccc;
+        border-radius: 10px;
+        margin: 15px auto;
+        display: block;
+    }
+    
+    /* Fixa as categorias no topo da gaveta ao rolar */
+    .categories-section {
+        position: sticky;
+        top: 0;
+        background: white;
+        z-index: 1000;
+    }
 }
 
 /* Marcadores Estilo Airbnb (Pílulas de Preço) */
 .custom-div-icon div {
-  background: white;
-  padding: 5px 10px;
-  border-radius: 20px;
-  font-weight: bold;
-  border: 1px solid #ccc;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-  font-size: 12px;
-  white-space: nowrap;
-  color: #333;
+    background: white;
+    padding: 5px 10px;
+    border-radius: 20px;
+    font-weight: bold;
+    border: 1px solid #ccc;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    font-size: 12px;
+    white-space: nowrap;
+    color: #333;
 }
 
 #btn-subscribe {
-  background-color: #007ebd;
+  background-color: #007EBD;
   color: #ffffff;
   border: none;
   padding: 12px 24px;
@@ -238,50 +235,61 @@ body {
 }
 /* Ajuste para o dropdown do usuário no header */
 .dropdown-toggle::after {
-  vertical-align: middle;
-  margin-left: 8px;
+    vertical-align: middle;
+    margin-left: 8px;
 }
 
 .dropdown-item:active {
-  background-color: #553a73; /* Mantendo seu roxo principal */
+    background-color: #553A73; /* Mantendo seu roxo principal */
 }
 
 .card-ativo-mapa {
-  border: 2px solid #553a73 !important; /* Roxo do seu painel */
-  box-shadow: 0 0 15px rgba(85, 58, 115, 0.3) !important;
-  transform: translateY(-5px);
-  transition: all 0.3s ease;
+    border: 2px solid #553A73 !important; /* Roxo do seu painel */
+    box-shadow: 0 0 15px rgba(85, 58, 115, 0.3) !important;
+    transform: translateY(-5px);
+    transition: all 0.3s ease;
+}
+
+/* --- SIMULACAO DE PAGAMENTO --- */
+.payment-section {
+    margin-bottom: 12px;
+    animation: fadeInPayment 0.3s ease;
+}
+@keyframes fadeInPayment {
+    from { opacity: 0; transform: translateY(-8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.payment-section .card {
+    border: 1px solid #e9ecef !important;
+}
+#qrCodePix {
+    display: block;
+    image-rendering: pixelated;
+}
+#btnConfirmarPagar:disabled {
+    background-color: #ccc !important;
+    border-color: #ccc !important;
+    cursor: not-allowed;
 }
 
 /* --- FORCA DA SENHA --- */
-.password-strength {
-  margin-top: 4px;
-}
-.strength-bars {
-  height: 4px;
-}
+.password-strength { margin-top: 4px; }
+.strength-bars { height: 4px; }
 .strength-bar {
-  flex: 1;
-  height: 4px;
-  border-radius: 2px;
-  background: #e0e0e0;
-  transition: background 0.3s;
+    flex: 1;
+    height: 4px;
+    border-radius: 2px;
+    background: #e0e0e0;
+    transition: background 0.3s;
 }
-.strength-bar.weak {
-  background: #dc3545;
-}
-.strength-bar.fair {
-  background: #fd7e14;
-}
-.strength-bar.good {
-  background: #ffc107;
-}
-.strength-bar.strong {
-  background: #28a745;
-}
+.strength-bar.weak { background: #dc3545; }
+.strength-bar.fair { background: #fd7e14; }
+.strength-bar.good { background: #ffc107; }
+.strength-bar.strong { background: #28a745; }
 .strength-text {
-  font-size: 0.7rem;
-  font-weight: 600;
-  display: block;
-  margin-top: 2px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    display: block;
+    margin-top: 2px;
 }
+

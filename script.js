@@ -1,197 +1,388 @@
 // 1. Registro do Service Worker para PWA
-if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker
-      .register("/service-worker.js")
-      .then((reg) => console.log("SW registrado:", reg.scope))
-      .catch((err) => console.log("Erro SW:", err));
-  });
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/service-worker.js')
+            .then(reg => console.log('SW registrado:', reg.scope))
+            .catch(err => console.log('Erro SW:', err));
+    });
 }
 
 // --- FORCA DA SENHA ---
 function avaliarForcaSenha(senha) {
-  let pontos = 0;
-  if (senha.length >= 6) pontos++;
-  if (senha.length >= 8) pontos++;
-  if (/[A-Z]/.test(senha) && /[a-z]/.test(senha)) pontos++;
-  if (/\d/.test(senha)) pontos++;
-  if (/[^A-Za-z0-9]/.test(senha)) pontos++;
+    let pontos = 0;
+    if (senha.length >= 6) pontos++;
+    if (senha.length >= 8) pontos++;
+    if (/[A-Z]/.test(senha) && /[a-z]/.test(senha)) pontos++;
+    if (/\d/.test(senha)) pontos++;
+    if (/[^A-Za-z0-9]/.test(senha)) pontos++;
 
-  if (pontos <= 1)
-    return { nivel: 1, texto: "Muito fraca", cor: "weak", textoCor: "#dc3545" };
-  if (pontos === 2)
-    return { nivel: 2, texto: "Fraca", cor: "fair", textoCor: "#fd7e14" };
-  if (pontos === 3)
-    return { nivel: 3, texto: "Boa", cor: "good", textoCor: "#ffc107" };
-  return { nivel: 4, texto: "Forte", cor: "strong", textoCor: "#28a745" };
+    if (pontos <= 1) return { nivel: 1, texto: 'Muito fraca', cor: 'weak', textoCor: '#dc3545' };
+    if (pontos === 2) return { nivel: 2, texto: 'Fraca', cor: 'fair', textoCor: '#fd7e14' };
+    if (pontos === 3) return { nivel: 3, texto: 'Boa', cor: 'good', textoCor: '#ffc107' };
+    return { nivel: 4, texto: 'Forte', cor: 'strong', textoCor: '#28a745' };
 }
 
 function atualizarIndicadorForca(inputId) {
-  const input = document.getElementById(inputId);
-  if (!input) return;
+    const input = document.getElementById(inputId);
+    if (!input) return;
 
-  const container = input
-    .closest(".col-md-6")
-    .querySelector(".password-strength");
-  if (!container) return;
+    const container = input.closest('.col-md-6').querySelector('.password-strength');
+    if (!container) return;
 
-  const bars = container.querySelectorAll(".strength-bar");
-  const texto = container.querySelector(".strength-text");
+    const bars = container.querySelectorAll('.strength-bar');
+    const texto = container.querySelector('.strength-text');
 
-  input.addEventListener("input", () => {
-    const senha = input.value;
+    input.addEventListener('input', () => {
+        const senha = input.value;
 
-    bars.forEach((bar) => (bar.className = "strength-bar"));
-    texto.textContent = "";
-    texto.style.color = "";
+        bars.forEach(bar => bar.className = 'strength-bar');
+        texto.textContent = '';
+        texto.style.color = '';
 
-    if (!senha) return;
+        if (!senha) return;
 
-    const resultado = avaliarForcaSenha(senha);
+        const resultado = avaliarForcaSenha(senha);
 
-    for (let i = 0; i < resultado.nivel && i < bars.length; i++) {
-      bars[i].classList.add(resultado.cor);
-    }
+        for (let i = 0; i < resultado.nivel && i < bars.length; i++) {
+            bars[i].classList.add(resultado.cor);
+        }
 
-    texto.textContent = resultado.texto;
-    texto.style.color = resultado.textoCor;
-  });
+        texto.textContent = resultado.texto;
+        texto.style.color = resultado.textoCor;
+    });
 }
 
-document.addEventListener("DOMContentLoaded", () => {
-  atualizarIndicadorForca("cad-senha-usuario");
-  atualizarIndicadorForca("cad-senha-empresa");
+document.addEventListener('DOMContentLoaded', () => {
+    atualizarIndicadorForca('cad-senha-usuario');
+    atualizarIndicadorForca('cad-senha-empresa');
 });
 
-document.addEventListener("DOMContentLoaded", () => {
-  // --- SELEÇÃO DE ELEMENTOS ---
-  const btnLupaMobile = document.getElementById("btn-lupa-mobile");
-  const inputMobile = document.getElementById("input-busca-mobile");
-  const inputDesktop = document.querySelector(".search-bar input");
+// --- SIMULACAO DE PAGAMENTO ---
+let timerPixInterval = null;
 
-  const modalElement = document.getElementById("modalAgendamento");
-  const bModal = modalElement ? new bootstrap.Modal(modalElement) : null;
-  const formAgendamento = document.getElementById("formAgendamento");
-  const statusPagamento = document.getElementById("statusPagamento");
+function gerarChavePix() {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let chave = '';
+    for (let i = 0; i < 32; i++) {
+        chave += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return chave;
+}
 
-  // Troca entre Modais e força a aba correta
-  document.querySelectorAll(".abrir-cadastro").forEach((link) => {
-    link.addEventListener("click", (e) => {
-      e.preventDefault();
-      const modalLoginEl = document.getElementById("modalLogin");
-      const modalLoginBS = bootstrap.Modal.getInstance(modalLoginEl);
-      if (modalLoginBS) modalLoginBS.hide();
+function desenharQRCode(canvasId, texto) {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const size = canvas.width;
+    const cellSize = Math.floor(size / 25);
+    const offset = Math.floor((size - cellSize * 25) / 2);
 
-      const modalCadEl = document.getElementById("modalCadastro");
-      const modalCadBS = new bootstrap.Modal(modalCadEl);
-      modalCadBS.show();
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, size, size);
 
-      const textoLink = e.target.innerText.toLowerCase();
-      setTimeout(() => {
-        let selector = "#cad-usuario-tab";
-        if (textoLink.includes("empresa") || textoLink.includes("parceiro")) {
-          selector = 'button[data-bs-target="#cad-empresa"]';
-        } else {
-          selector = 'button[data-bs-target="#cad-usuario"]';
+    // Gerar padrao pseudo-aleatorio baseado no texto
+    const seed = texto.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
+    function pseudoRandom(i, j) {
+        return ((seed * (i + 1) * 7 + (j + 1) * 13 + i * j * 3) % 100) > 45;
+    }
+
+    ctx.fillStyle = '#000000';
+
+    // Desenhar finder patterns (cantos)
+    function drawFinder(x, y) {
+        for (let i = 0; i < 7; i++) {
+            for (let j = 0; j < 7; j++) {
+                if (i === 0 || i === 6 || j === 0 || j === 6 || (i >= 2 && i <= 4 && j >= 2 && j <= 4)) {
+                    ctx.fillRect(offset + (x + j) * cellSize, offset + (y + i) * cellSize, cellSize, cellSize);
+                }
+            }
         }
-        const abaAlvo = document.querySelector(selector);
-        if (abaAlvo) {
-          const tab = new bootstrap.Tab(abaAlvo);
-          tab.show();
+    }
+
+    drawFinder(0, 0);
+    drawFinder(18, 0);
+    drawFinder(0, 18);
+
+    // Dados centrais
+    for (let i = 0; i < 25; i++) {
+        for (let j = 0; j < 25; j++) {
+            if (i < 8 && j < 8) continue;
+            if (i < 8 && j > 16) continue;
+            if (i > 16 && j < 8) continue;
+            if (pseudoRandom(i, j)) {
+                ctx.fillRect(offset + j * cellSize, offset + i * cellSize, cellSize, cellSize);
+            }
         }
-      }, 150);
+    }
+}
+
+function iniciarTimerPix() {
+    clearInterval(timerPixInterval);
+    let segundos = 30 * 60; // 30 min
+    const timerEl = document.getElementById('timerPix');
+    if (!timerEl) return;
+
+    function atualizar() {
+        const min = Math.floor(segundos / 60);
+        const seg = segundos % 60;
+        timerEl.textContent = `${String(min).padStart(2, '0')}:${String(seg).padStart(2, '0')}`;
+        if (segundos <= 0) {
+            clearInterval(timerPixInterval);
+            timerEl.textContent = 'Expirado';
+        }
+        segundos--;
+    }
+
+    atualizar();
+    timerPixInterval = setInterval(atualizar, 1000);
+}
+
+function formatarNumeroCartao(input) {
+    let valor = input.value.replace(/\D/g, '');
+    valor = valor.substring(0, 16);
+    valor = valor.replace(/(\d{4})(?=\d)/g, '$1 ');
+    input.value = valor;
+}
+
+function formatarValidadeCartao(input) {
+    let valor = input.value.replace(/\D/g, '');
+    valor = valor.substring(0, 4);
+    if (valor.length > 2) {
+        valor = valor.substring(0, 2) + '/' + valor.substring(2);
+    }
+    input.value = valor;
+}
+
+function formatarCvv(input) {
+    input.value = input.value.replace(/\D/g, '').substring(0, 4);
+}
+
+function validarCartao() {
+    const numero = document.getElementById('cartaoNumero');
+    const nome = document.getElementById('cartaoNome');
+    const validade = document.getElementById('cartaoValidade');
+    const cvv = document.getElementById('cartaoCvv');
+    if (!numero || !nome || !validade || !cvv) return false;
+
+    const numLimpo = numero.value.replace(/\s/g, '');
+    if (numLimpo.length < 13) return false;
+    if (nome.value.trim().length < 3) return false;
+    if (!/^\d{2}\/\d{2}$/.test(validade.value)) return false;
+    if (cvv.value.length < 3) return false;
+
+    return true;
+}
+
+function alternarSecaoPagamento(metodo) {
+    document.querySelectorAll('.payment-section').forEach(s => s.classList.add('d-none'));
+    clearInterval(timerPixInterval);
+
+    const btnSubmit = document.getElementById('btnConfirmarPagar');
+    if (!btnSubmit) return;
+
+    // Remover required dos campos do cartao quando nao selecionado
+    ['cartaoNumero', 'cartaoNome', 'cartaoValidade', 'cartaoCvv'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.required = false;
     });
-  });
 
-  // --- CONFIGURAÇÕES DO MAPA ---
-  const map = L.map("map", { zoomControl: false }).setView(
-    [-22.9345, -42.4951],
-    14,
-  );
-  L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    attribution: "&copy; OpenStreetMap",
-  }).addTo(map);
+    if (metodo === 'pix') {
+        document.getElementById('secaoPix').classList.remove('d-none');
+        const chave = gerarChavePix();
+        document.getElementById('pixCopiaCola').value = chave;
+        desenharQRCode('qrCodePix', chave);
+        iniciarTimerPix();
+        btnSubmit.disabled = false;
+        btnSubmit.textContent = 'Confirmar Agendamento';
+    } else if (metodo === 'cartao') {
+        document.getElementById('secaoCartao').classList.remove('d-none');
+        ['cartaoNumero', 'cartaoNome', 'cartaoValidade', 'cartaoCvv'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.required = true;
+        });
+        btnSubmit.disabled = !validarCartao();
+        btnSubmit.textContent = 'Pagar com Cartão';
+    } else if (metodo === 'local') {
+        document.getElementById('secaoLocal').classList.remove('d-none');
+        btnSubmit.disabled = false;
+        btnSubmit.textContent = 'Confirmar Agendamento';
+    } else {
+        btnSubmit.disabled = true;
+        btnSubmit.textContent = 'Selecione o pagamento';
+    }
+}
 
-  L.control.zoom({ position: "bottomright" }).addTo(map);
+document.addEventListener('DOMContentLoaded', () => {
+    // --- SELEÇÃO DE ELEMENTOS ---
+    const btnLupaMobile = document.getElementById('btn-lupa-mobile');
+    const inputMobile = document.getElementById('input-busca-mobile');
+    const inputDesktop = document.querySelector('.search-bar input'); 
+    
+    const modalElement = document.getElementById('modalAgendamento');
+    const bModal = modalElement ? new bootstrap.Modal(modalElement) : null;
+    const formAgendamento = document.getElementById('formAgendamento');
+    const statusPagamento = document.getElementById('statusPagamento');
 
-  const iconeAzul = L.icon({
-    iconUrl:
-      "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-blue.png",
-    shadowUrl:
-      "https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png",
-    iconSize: [25, 41],
-    iconAnchor: [12, 41],
-  });
+    // --- PAGAMENTO: Event Listeners ---
+    const metodoPagamento = document.getElementById('metodoPagamento');
+    if (metodoPagamento) {
+        metodoPagamento.addEventListener('change', (e) => {
+            alternarSecaoPagamento(e.target.value);
+        });
+    }
 
-  const iconeVermelho = L.icon({
-    iconUrl:
-      "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png",
-    shadowUrl:
-      "https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png",
-    iconSize: [25, 41],
-    iconAnchor: [12, 41],
-  });
+    const cartaoNumero = document.getElementById('cartaoNumero');
+    const cartaoNome = document.getElementById('cartaoNome');
+    const cartaoValidade = document.getElementById('cartaoValidade');
+    const cartaoCvv = document.getElementById('cartaoCvv');
 
-  // --- CARREGAMENTO DINÂMICO DE SALÕES ---
-  const saloesIniciais = [
-    {
-      nome: "Studio Bella Donna",
-      email: "ficticio1@email.com",
-      lat: -22.901844995221147,
-      lng: -42.474725201148125,
-      servicos: "Cabelo • Unhas • Sobrancelhas",
-      img: "https://frizzar.com.br/blog/wp-content/uploads/2025/01/salao-de-beleza-moderno.webp",
-    },
-    {
-      nome: "Clínica Estética Flores",
-      email: "ficticio2@email.com",
-      lat: -22.930476325777267,
-      lng: -42.48981265383228,
-      servicos: "Rosto • Depilação • Massagem",
-      img: "https://s2.glbimg.com/Ha2q-YYa3pCWtwM4E51zi_p-POI=/940x523/e.glbimg.com/og/ed/f/original/2019/02/20/blow-dry-bar-del-mar-chairs-counter-853427.jpg",
-    },
-    {
-      nome: "Espaço Glow",
-      email: "ficticio3@email.com",
-      lat: -22.888828721719282,
-      lng: -42.467136122927414,
-      servicos: "Unhas • Sobrancelhas • Rosto",
-      img: "https://ferrante.com.br/wp-content/uploads/2024/11/decoracao-minimalista-salao.jpg.jpeg",
-    },
-  ];
+    if (cartaoNumero) {
+        cartaoNumero.addEventListener('input', () => {
+            formatarNumeroCartao(cartaoNumero);
+            const btn = document.getElementById('btnConfirmarPagar');
+            if (btn && metodoPagamento.value === 'cartao') btn.disabled = !validarCartao();
+        });
+    }
+    if (cartaoNome) {
+        cartaoNome.addEventListener('input', () => {
+            const btn = document.getElementById('btnConfirmarPagar');
+            if (btn && metodoPagamento.value === 'cartao') btn.disabled = !validarCartao();
+        });
+    }
+    if (cartaoValidade) {
+        cartaoValidade.addEventListener('input', () => {
+            formatarValidadeCartao(cartaoValidade);
+            const btn = document.getElementById('btnConfirmarPagar');
+            if (btn && metodoPagamento.value === 'cartao') btn.disabled = !validarCartao();
+        });
+    }
+    if (cartaoCvv) {
+        cartaoCvv.addEventListener('input', () => {
+            formatarCvv(cartaoCvv);
+            const btn = document.getElementById('btnConfirmarPagar');
+            if (btn && metodoPagamento.value === 'cartao') btn.disabled = !validarCartao();
+        });
+    }
 
-  const bancoUsuarios = JSON.parse(localStorage.getItem("usuarios_pwa")) || [];
-  const novosSaloes = bancoUsuarios.filter(
-    (u) => u.tipo === "empresa" && u.lat && u.lng,
-  );
-  const todosSaloes = [...saloesIniciais];
+    const btnCopiarPix = document.getElementById('btnCopiarPix');
+    if (btnCopiarPix) {
+        btnCopiarPix.addEventListener('click', () => {
+            const pixInput = document.getElementById('pixCopiaCola');
+            if (pixInput) {
+                navigator.clipboard.writeText(pixInput.value).then(() => {
+                    btnCopiarPix.innerHTML = '<i class="bi bi-check-lg"></i>';
+                    setTimeout(() => { btnCopiarPix.innerHTML = '<i class="bi bi-clipboard"></i>'; }, 2000);
+                }).catch(() => {
+                    pixInput.select();
+                    document.execCommand('copy');
+                    btnCopiarPix.innerHTML = '<i class="bi bi-check-lg"></i>';
+                    setTimeout(() => { btnCopiarPix.innerHTML = '<i class="bi bi-clipboard"></i>'; }, 2000);
+                });
+            }
+        });
+    }
 
-  novosSaloes.forEach((emp) => {
-    todosSaloes.push({
-      nome: emp.nomeFantasia,
-      email: emp.email,
-      lat: emp.lat,
-      lng: emp.lng,
-      servicos: "Novo Parceiro • Saquarema",
-      img: "https://frizzar.com.br/blog/wp-content/uploads/2025/01/salao-de-beleza-moderno.webp",
-      isNovo: true,
+    // Reset payment on modal close
+    if (modalElement) {
+        modalElement.addEventListener('hidden.bs.modal', () => {
+            clearInterval(timerPixInterval);
+            document.querySelectorAll('.payment-section').forEach(s => s.classList.add('d-none'));
+            if (metodoPagamento) metodoPagamento.value = '';
+            ['cartaoNumero', 'cartaoNome', 'cartaoValidade', 'cartaoCvv'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) { el.value = ''; el.required = false; }
+            });
+            const btnSubmit = document.getElementById('btnConfirmarPagar');
+            if (btnSubmit) { btnSubmit.disabled = true; btnSubmit.textContent = 'Selecione o pagamento'; }
+        });
+    }
+
+    // Troca entre Modais e força a aba correta
+    document.querySelectorAll('.abrir-cadastro').forEach(link => {
+        link.addEventListener('click', (e) => {
+            e.preventDefault();
+            const modalLoginEl = document.getElementById('modalLogin');
+            const modalLoginBS = bootstrap.Modal.getInstance(modalLoginEl);
+            if (modalLoginBS) modalLoginBS.hide();
+
+            const modalCadEl = document.getElementById('modalCadastro');
+            const modalCadBS = new bootstrap.Modal(modalCadEl);
+            modalCadBS.show();
+
+            const textoLink = e.target.innerText.toLowerCase();
+            setTimeout(() => {
+                let selector = '#cad-usuario-tab';
+                if (textoLink.includes('empresa') || textoLink.includes('parceiro')) {
+                    selector = 'button[data-bs-target="#cad-empresa"]';
+                } else {
+                    selector = 'button[data-bs-target="#cad-usuario"]';
+                }
+                const abaAlvo = document.querySelector(selector);
+                if (abaAlvo) {
+                    const tab = new bootstrap.Tab(abaAlvo);
+                    tab.show();
+                }
+            }, 150);
+        });
     });
-  });
 
-  const marcadores = [];
-  const containerCards = document.getElementById("container-cards");
+    // --- CONFIGURAÇÕES DO MAPA ---
+    const map = L.map('map', { zoomControl: false }).setView([-22.9345, -42.4951], 14);
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap'
+    }).addTo(map);
 
-  if (containerCards) {
-    containerCards.innerHTML = "";
-    todosSaloes.forEach((salao, index) => {
-      const cardHTML = `
+    L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+    const iconeAzul = L.icon({
+        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-blue.png',
+        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+        iconSize: [25, 41], iconAnchor: [12, 41]
+    });
+
+    const iconeVermelho = L.icon({
+        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png',
+        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+        iconSize: [25, 41], iconAnchor: [12, 41]
+    });
+
+    // --- CARREGAMENTO DINÂMICO DE SALÕES ---
+    const saloesIniciais = [
+        { nome: "Studio Bella Donna", email: "ficticio1@email.com", lat: -22.901844995221147, lng: -42.474725201148125, servicos: "Cabelo • Unhas • Sobrancelhas", img: "https://frizzar.com.br/blog/wp-content/uploads/2025/01/salao-de-beleza-moderno.webp" },
+        { nome: "Clínica Estética Flores", email: "ficticio2@email.com", lat: -22.930476325777267, lng: -42.48981265383228, servicos: "Rosto • Depilação • Massagem", img: "https://s2.glbimg.com/Ha2q-YYa3pCWtwM4E51zi_p-POI=/940x523/e.glbimg.com/og/ed/f/original/2019/02/20/blow-dry-bar-del-mar-chairs-counter-853427.jpg" },
+        { nome: "Espaço Glow", email: "ficticio3@email.com", lat: -22.888828721719282, lng: -42.467136122927414, servicos: "Unhas • Sobrancelhas • Rosto", img: "https://ferrante.com.br/wp-content/uploads/2024/11/decoracao-minimalista-salao.jpg.jpeg" }
+    ];
+
+    const bancoUsuarios = JSON.parse(localStorage.getItem('usuarios_pwa')) || [];
+    const novosSaloes = bancoUsuarios.filter(u => u.tipo === 'empresa' && u.lat && u.lng);
+    const todosSaloes = [...saloesIniciais];
+
+    novosSaloes.forEach(emp => {
+        todosSaloes.push({
+            nome: emp.nomeFantasia,
+            email: emp.email,
+            lat: emp.lat,
+            lng: emp.lng,
+            servicos: "Novo Parceiro • Saquarema",
+            img: "https://frizzar.com.br/blog/wp-content/uploads/2025/01/salao-de-beleza-moderno.webp",
+            isNovo: true
+        });
+    });
+
+    const marcadores = [];
+    const containerCards = document.getElementById('container-cards');
+
+    if (containerCards) {
+        containerCards.innerHTML = ""; 
+        todosSaloes.forEach((salao, index) => {
+            const cardHTML = `
                 <div class="col-12 col-xl-6 card-salao" data-index="${index}">
                     <div class="card service-card shadow-sm h-100 border-0">
                         <img src="${salao.img}" class="card-img-top rounded-4">
                         <div class="card-body d-flex flex-column">
                             <div class="d-flex justify-content-between align-items-center mb-1">
                                 <h6 class="card-title mb-0 fw-bold">${salao.nome}</h6>
-                                <span class="small fw-bold"><i class="bi bi-star-fill text-warning"></i> ${salao.isNovo ? "5.0" : "4.8"} (<span id="dist-${index}">...</span>)</span>
+                                <span class="small fw-bold"><i class="bi bi-star-fill text-warning"></i> ${salao.isNovo ? '5.0' : '4.8'} (<span id="dist-${index}">...</span>)</span>
                             </div>
                             <p class="card-text text-muted small mb-3">${salao.servicos}</p>
                             <div class="mt-auto d-flex gap-2">
@@ -203,459 +394,366 @@ document.addEventListener("DOMContentLoaded", () => {
                         </div>
                     </div>
                 </div>`;
-      containerCards.insertAdjacentHTML("beforeend", cardHTML);
-      const marker = L.marker([salao.lat, salao.lng], {
-        icon: iconeAzul,
-      }).addTo(map);
-      marker.bindPopup(`<b>${salao.nome}</b>`);
-      marcadores.push(marker);
-      marker.on("click", () => selecionarSalao(index));
-    });
-  }
-
-  // Adicione isso logo após o loop que cria os marcadores
-  document.querySelectorAll(".card-salao").forEach((card) => {
-    card.addEventListener("click", () => {
-      const index = card.getAttribute("data-index");
-      selecionarSalao(parseInt(index));
-    });
-  });
-
-  function selecionarSalao(indexAtivo) {
-    const cardsElements = document.querySelectorAll(".card-salao");
-    marcadores.forEach((m, i) => {
-      const card = cardsElements[i];
-      if (!card) return;
-      if (i === indexAtivo) {
-        m.setIcon(iconeVermelho);
-        m.setZIndexOffset(1000);
-        map.flyTo(m.getLatLng(), 15, { duration: 1 });
-        card.querySelector(".card").classList.add("card-ativo-mapa");
-      } else {
-        m.setIcon(iconeAzul);
-        m.setZIndexOffset(0);
-        card.querySelector(".card").classList.remove("card-ativo-mapa");
-      }
-    });
-  }
-
-  document.addEventListener("mouseover", (e) => {
-    const card = e.target.closest(".card-salao");
-    if (card && window.innerWidth > 768) {
-      const index = card.getAttribute("data-index");
-      selecionarSalao(parseInt(index));
+            containerCards.insertAdjacentHTML('beforeend', cardHTML);
+            const marker = L.marker([salao.lat, salao.lng], { icon: iconeAzul }).addTo(map);
+            marker.bindPopup(`<b>${salao.nome}</b>`);
+            marcadores.push(marker);
+            marker.on('click', () => selecionarSalao(index));
+        });
     }
-  });
 
-  // --- GEOLOCALIZAÇÃO ---
-  map.locate({ setView: true, maxZoom: 15 });
-  map.on("locationfound", (e) => {
-    L.marker(e.latlng)
-      .addTo(map)
-      .bindPopup("<b>Você está aqui!</b>")
-      .openPopup();
-    L.circle(e.latlng, {
-      radius: e.accuracy,
-      color: "#d93d3d",
-      fillOpacity: 0.1,
-    }).addTo(map);
+    // Adicione isso logo após o loop que cria os marcadores
+        document.querySelectorAll('.card-salao').forEach(card => {
+            card.addEventListener('click', () => {
+                const index = card.getAttribute('data-index');
+                selecionarSalao(parseInt(index));
+            });
+        });
 
-    todosSaloes.forEach((local, index) => {
-      const pontoComercio = L.latLng(local.lat, local.lng);
-      const dist = e.latlng.distanceTo(pontoComercio);
-      let textoDistancia =
-        dist >= 1000
-          ? (dist / 1000).toFixed(1) + " km"
-          : Math.round(dist) + " m";
-      const el = document.getElementById(`dist-${index}`);
-      if (el) el.innerText = textoDistancia;
-    });
-  });
-
-  // --- LÓGICA DE BUSCA ---
-  function filtrarCards(termo) {
-    const searchTerm = termo.toLowerCase();
-    document.querySelectorAll(".card-salao").forEach((cardDiv) => {
-      const title = cardDiv
-        .querySelector(".card-title")
-        .innerText.toLowerCase();
-      const services = cardDiv
-        .querySelector(".card-text")
-        .innerText.toLowerCase();
-      cardDiv.style.display =
-        title.includes(searchTerm) || services.includes(searchTerm)
-          ? "block"
-          : "none";
-    });
-  }
-
-  if (inputDesktop)
-    inputDesktop.addEventListener("input", (e) => filtrarCards(e.target.value));
-  if (inputMobile)
-    inputMobile.addEventListener("input", (e) => filtrarCards(e.target.value));
-
-  if (btnLupaMobile) {
-    btnLupaMobile.addEventListener("click", () => {
-      inputMobile.classList.toggle("d-none");
-      inputMobile.classList.toggle("ativo");
-      if (inputMobile.classList.contains("ativo")) inputMobile.focus();
-    });
-  }
-
-  // --- AGENDAMENTO DINÂMICO ---
-  document.addEventListener("click", (e) => {
-    if (e.target.classList.contains("btn-agendar-real")) {
-      const usuarioAtivo = JSON.parse(localStorage.getItem("usuario_logado"));
-
-      if (!usuarioAtivo) {
-        const modalAviso = new bootstrap.Modal(
-          document.getElementById("modalAvisoLogin"),
-        );
-        modalAviso.show();
-        return;
-      }
-
-      const emailEmpresa = e.target.getAttribute("data-email");
-      const nomeEmpresa = e.target.getAttribute("data-nome");
-
-      // Armazenamos o email da empresa no modal para usar no momento de salvar
-      const modalEl = document.getElementById("modalAgendamento");
-      modalEl.setAttribute("data-email-empresa", emailEmpresa);
-
-      const modalLabel = document.getElementById("modalAgendamentoLabel");
-      if (modalLabel) modalLabel.innerText = `Agendar em: ${nomeEmpresa}`;
-
-      // Resetamos os campos do modal
-      const inputData = document.getElementById("dataAgendamento");
-      const selectHora = document.getElementById("horaAgendamento");
-      inputData.value = "";
-      selectHora.innerHTML =
-        '<option value="">Selecione uma data primeiro...</option>';
-
-      // Lógica para carregar horários quando a data mudar
-      inputData.onchange = () => {
-        const dataSelecionada = inputData.value;
-        const agendaEmpresa =
-          JSON.parse(localStorage.getItem(`agenda_${emailEmpresa}`)) || {};
-        const slots = agendaEmpresa[dataSelecionada] || [];
-
-        selectHora.innerHTML =
-          '<option value="">Selecione o horário...</option>';
-
-        // Filtra apenas horários que NÃO estão ocupados
-        const disponiveis = slots.filter((s) => !s.ocupado);
-
-        if (disponiveis.length === 0) {
-          selectHora.innerHTML =
-            '<option value="">Nenhum horário disponível para este dia.</option>';
-        } else {
-          disponiveis.forEach((s) => {
-            selectHora.innerHTML += `<option value="${s.hora}">${s.hora}</option>`;
-          });
-        }
-      };
-
-      if (bModal) bModal.show();
-    }
-  });
-
-  // Função auxiliar para trocar de modal suavemente
-  window.irParaLogin = function () {
-    const modalAviso = bootstrap.Modal.getInstance(
-      document.getElementById("modalAvisoLogin"),
-    );
-    modalAviso.hide();
-
-    setTimeout(() => {
-      const modalLogin = new bootstrap.Modal(
-        document.getElementById("modalLogin"),
-      );
-      modalLogin.show();
-    }, 400); // Pequeno delay para a animação de saída terminar
-  };
-
-  // Procure por esta linha no seu script.js
-  if (formAgendamento) {
-    formAgendamento.addEventListener("submit", async (e) => {
-      e.preventDefault();
-
-      // 1. Pegamos os dados que o usuário preencheu no modal
-      const btnSubmit = formAgendamento.querySelector('button[type="submit"]');
-      const modalEl = document.getElementById("modalAgendamento");
-      const emailEmpresa = modalEl.getAttribute("data-email-empresa"); // O email que salvamos ao abrir o modal
-      const dataEscolhida = document.getElementById("dataAgendamento").value;
-      const horaEscolhida = document.getElementById("horaAgendamento").value;
-
-      if (!horaEscolhida) return alert("Por favor, selecione um horário.");
-
-      // Início da animação de carregamento
-      btnSubmit.disabled = true;
-      btnSubmit.innerHTML =
-        '<span class="spinner-border spinner-border-sm"></span> Processando...';
-
-      setTimeout(() => {
-        statusPagamento.innerHTML =
-          '<b class="text-success">Pagamento Aprovado!</b>';
-
-        setTimeout(() => {
-          const usuarioAtivo = JSON.parse(
-            localStorage.getItem("usuario_logado"),
-          );
-
-          if (usuarioAtivo) {
-            const agendaEmpresa =
-              JSON.parse(localStorage.getItem(`agenda_${emailEmpresa}`)) || {};
-
-            if (agendaEmpresa[dataEscolhida]) {
-              const slot = agendaEmpresa[dataEscolhida].find(
-                (s) => s.hora === horaEscolhida,
-              );
-
-              if (slot) {
-                slot.ocupado = true;
-
-                // Tratativa para evitar o 'undefined'
-                // Se o usuário for cliente, usamos nome/sobrenome. Se for empresa, usamos nomeFantasia.
-                const nomeBase =
-                  usuarioAtivo.nome || usuarioAtivo.nomeFantasia || "Usuário";
-                const sobrenomeBase = usuarioAtivo.sobrenome || "";
-
-                slot.clienteNome = `${nomeBase} ${sobrenomeBase}`.trim();
-                slot.clienteTelefone = usuarioAtivo.telefone || "Não informado";
-                slot.clienteEmail = usuarioAtivo.email; // <--- ADICIONE ESTA LINHA AQUI
-
-                localStorage.setItem(
-                  `agenda_${emailEmpresa}`,
-                  JSON.stringify(agendaEmpresa),
-                );
-              }
+    function selecionarSalao(indexAtivo) {
+        const cardsElements = document.querySelectorAll('.card-salao');
+        marcadores.forEach((m, i) => {
+            const card = cardsElements[i];
+            if (!card) return;
+            if (i === indexAtivo) {
+                m.setIcon(iconeVermelho);
+                m.setZIndexOffset(1000);
+                map.flyTo(m.getLatLng(), 15, { duration: 1 });
+                card.querySelector('.card').classList.add('card-ativo-mapa');
+            } else {
+                m.setIcon(iconeAzul);
+                m.setZIndexOffset(0);
+                card.querySelector('.card').classList.remove('card-ativo-mapa');
             }
-            // Dentro do if (slot) onde você confirma o agendamento:
-            const notificacoesEmpresa =
-              JSON.parse(
-                localStorage.getItem(`notificacoes_${emailEmpresa}`),
-              ) || [];
-            notificacoesEmpresa.push({
-              mensagem: `Novo agendamento recebido! Cliente: ${usuarioAtivo.nome} para o dia ${dataEscolhida} às ${horaEscolhida}.`,
-              lida: false,
-            });
-            localStorage.setItem(
-              `notificacoes_${emailEmpresa}`,
-              JSON.stringify(notificacoesEmpresa),
-            );
+        });
+    }
 
-            // Salva no histórico do cliente (Sua lógica que já existia)
-            const chaveCliente = `agendamentos_${usuarioAtivo.email}`;
-            const agendamentos =
-              JSON.parse(localStorage.getItem(chaveCliente)) || [];
-            agendamentos.push({
-              salao: document
-                .getElementById("modalAgendamentoLabel")
-                .innerText.replace("Agendar em: ", ""),
-              emailEmpresa: emailEmpresa, // ADICIONE ESTA LINHA AQUI
-              data: dataEscolhida,
-              hora: horaEscolhida,
-              pagamento: document.getElementById("metodoPagamento").value,
-              status: "confirmado",
-              criadoEm: new Date().toISOString(),
-            });
-            localStorage.setItem(chaveCliente, JSON.stringify(agendamentos));
-          }
+    document.addEventListener('mouseover', (e) => {
+        const card = e.target.closest('.card-salao');
+        if (card && window.innerWidth > 768) {
+            const index = card.getAttribute('data-index');
+            selecionarSalao(parseInt(index));
+        }
+    });
 
-          // Limpeza e fechamento do modal
-          if (bModal) bModal.hide();
-          formAgendamento.reset();
-          statusPagamento.innerHTML = "";
-          btnSubmit.disabled = false;
-          btnSubmit.innerText = "Confirmar e Pagar";
-          alert("Sucesso! Agendamento confirmado.");
+    // --- GEOLOCALIZAÇÃO ---
+    map.locate({ setView: true, maxZoom: 15 });
+    map.on('locationfound', (e) => {
+        L.marker(e.latlng).addTo(map).bindPopup("<b>Você está aqui!</b>").openPopup();
+        L.circle(e.latlng, { radius: e.accuracy, color: '#d93d3d', fillOpacity: 0.1 }).addTo(map);
 
-          // Notificações
-          if (
-            "Notification" in window &&
-            Notification.permission === "granted"
-          ) {
-            verificarAgendamentosProximos();
-          }
+        todosSaloes.forEach((local, index) => {
+            const pontoComercio = L.latLng(local.lat, local.lng);
+            const dist = e.latlng.distanceTo(pontoComercio);
+            let textoDistancia = dist >= 1000 ? (dist / 1000).toFixed(1) + " km" : Math.round(dist) + " m";
+            const el = document.getElementById(`dist-${index}`);
+            if (el) el.innerText = textoDistancia;
+        });
+    });
+
+    // --- LÓGICA DE BUSCA ---
+    function filtrarCards(termo) {
+        const searchTerm = termo.toLowerCase();
+        document.querySelectorAll('.card-salao').forEach(cardDiv => {
+            const title = cardDiv.querySelector('.card-title').innerText.toLowerCase();
+            const services = cardDiv.querySelector('.card-text').innerText.toLowerCase();
+            cardDiv.style.display = (title.includes(searchTerm) || services.includes(searchTerm)) ? "block" : "none";
+        });
+    }
+
+    if(inputDesktop) inputDesktop.addEventListener('input', (e) => filtrarCards(e.target.value));
+    if(inputMobile) inputMobile.addEventListener('input', (e) => filtrarCards(e.target.value));
+
+    if(btnLupaMobile) {
+        btnLupaMobile.addEventListener('click', () => {
+            inputMobile.classList.toggle('d-none');
+            inputMobile.classList.toggle('ativo');
+            if (inputMobile.classList.contains('ativo')) inputMobile.focus();
+        });
+    }
+
+// --- AGENDAMENTO DINÂMICO (COM MODAL BONITO) ---
+    document.addEventListener('click', (e) => {
+        if (e.target.classList.contains('btn-agendar-real')) {
+            
+            const usuarioAtivo = JSON.parse(localStorage.getItem('usuario_logado'));
+
+            if (!usuarioAtivo) {
+                // 1. Em vez de alert, abrimos o nosso novo modal de aviso
+                const modalAviso = new bootstrap.Modal(document.getElementById('modalAvisoLogin'));
+                modalAviso.show();
+                return; 
+            }
+
+            // 2. Se logado, segue o fluxo normal
+            const email = e.target.getAttribute('data-email');
+            const nome = e.target.getAttribute('data-nome');
+            
+            const modalLabel = document.getElementById('modalAgendamentoLabel');
+            if(modalLabel) modalLabel.innerText = `Agendar em: ${nome}`;
+
+            // ... (restante do seu código de preencher horários) ...
+            
+            if(bModal) bModal.show();
+        }
+    });
+
+    // Função auxiliar para trocar de modal suavemente
+    window.irParaLogin = function() {
+        const modalAviso = bootstrap.Modal.getInstance(document.getElementById('modalAvisoLogin'));
+        modalAviso.hide();
+        
+        setTimeout(() => {
+            const modalLogin = new bootstrap.Modal(document.getElementById('modalLogin'));
+            modalLogin.show();
+        }, 400); // Pequeno delay para a animação de saída terminar
+    };
+
+    if(formAgendamento) {
+        formAgendamento.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btnSubmit = document.getElementById('btnConfirmarPagar');
+            if (!btnSubmit) return;
+            const metodo = document.getElementById('metodoPagamento').value;
+
+            btnSubmit.disabled = true;
+
+            if (metodo === 'cartao') {
+                // Simulacao de processamento de cartao
+                btnSubmit.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Validando cartão...';
+                statusPagamento.innerHTML = '<span class="text-muted"><i class="bi bi-shield-lock"></i> Verificando dados do cartão...</span>';
+
+                setTimeout(() => {
+                    statusPagamento.innerHTML = '<span class="text-muted"><i class="bi bi-arrow-repeat"></i> Processando pagamento...</span>';
+                    setTimeout(() => {
+                        const numCartao = document.getElementById('cartaoNumero').value;
+                        const ultimos4 = numCartao.replace(/\s/g, '').slice(-4);
+                        const parcelas = document.getElementById('cartaoParcelas').value;
+                        statusPagamento.innerHTML = `<b class="text-success"><i class="bi bi-check-circle-fill"></i> Pagamento aprovado!</b><br><small class="text-muted">Cartão final ${ultimos4} • ${parcelas}x</small>`;
+                        finalizarAgendamento(metodo, btnSubmit);
+                    }, 1500);
+                }, 1500);
+
+            } else if (metodo === 'pix') {
+                // Simulacao de confirmacao Pix
+                btnSubmit.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Aguardando pagamento...';
+                statusPagamento.innerHTML = '<span class="text-muted"><i class="bi bi-clock"></i> Verificando pagamento Pix...</span>';
+
+                setTimeout(() => {
+                    statusPagamento.innerHTML = '<b class="text-success"><i class="bi bi-check-circle-fill"></i> Pix confirmado!</b>';
+                    clearInterval(timerPixInterval);
+                    finalizarAgendamento(metodo, btnSubmit);
+                }, 2500);
+
+            } else if (metodo === 'local') {
+                btnSubmit.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Confirmando...';
+                statusPagamento.innerHTML = '<span class="text-muted">Registrando agendamento...</span>';
+
+                setTimeout(() => {
+                    statusPagamento.innerHTML = '<b class="text-success"><i class="bi bi-check-circle-fill"></i> Agendamento confirmado!</b><br><small class="text-muted">Pagamento será feito no local</small>';
+                    finalizarAgendamento(metodo, btnSubmit);
+                }, 1500);
+            }
+        });
+    }
+
+    function finalizarAgendamento(metodo, btnSubmit) {
+        setTimeout(() => {
+            // Salvar agendamento no localStorage do usuario
+            const usuarioAtivo = JSON.parse(localStorage.getItem('usuario_logado'));
+            if (usuarioAtivo && usuarioAtivo.tipo === 'cliente') {
+                const chave = `agendamentos_${usuarioAtivo.email}`;
+                const agendamentos = JSON.parse(localStorage.getItem(chave)) || [];
+
+                const detalhePagamento = {};
+                if (metodo === 'cartao') {
+                    const numCartao = document.getElementById('cartaoNumero').value;
+                    detalhePagamento.tipo = 'cartao';
+                    detalhePagamento.final = numCartao.replace(/\s/g, '').slice(-4);
+                    detalhePagamento.parcelas = document.getElementById('cartaoParcelas').value;
+                } else if (metodo === 'pix') {
+                    detalhePagamento.tipo = 'pix';
+                    detalhePagamento.chave = document.getElementById('pixCopiaCola').value;
+                } else {
+                    detalhePagamento.tipo = 'local';
+                }
+
+                agendamentos.push({
+                    salao: document.getElementById('modalAgendamentoLabel').innerText.replace('Agendar em: ', ''),
+                    data: document.getElementById('dataAgendamento').value,
+                    hora: document.getElementById('horaAgendamento').value,
+                    pagamento: metodo,
+                    detalhePagamento: detalhePagamento,
+                    status: 'confirmado',
+                    criadoEm: new Date().toISOString()
+                });
+                localStorage.setItem(chave, JSON.stringify(agendamentos));
+            }
+
+            if(bModal) bModal.hide();
+            formAgendamento.reset();
+            statusPagamento.innerHTML = '';
+            clearInterval(timerPixInterval);
+            document.querySelectorAll('.payment-section').forEach(s => s.classList.add('d-none'));
+            btnSubmit.disabled = true;
+            btnSubmit.textContent = 'Selecione o pagamento';
+            alert("Sucesso! Agendamento confirmado.");
+
+            // Solicitar permissao de notificacao apos agendar
+            if ('Notification' in window && Notification.permission === 'default') {
+                setTimeout(() => {
+                    if (confirm('Deseja ativar notificacoes para receber lembretes do seu agendamento?')) {
+                        Notification.requestPermission().then(perm => {
+                            if (perm === 'granted') {
+                                const badge = document.getElementById('badge-notificacao');
+                                if (badge) badge.classList.remove('d-none');
+                                verificarAgendamentosProximos();
+                            }
+                        });
+                    }
+                }, 500);
+            } else if ('Notification' in window && Notification.permission === 'granted') {
+                verificarAgendamentosProximos();
+            }
         }, 2000);
-      }, 1500);
-    });
-  }
-
-  // --- FAVORITAR SALAO ---
-  document.addEventListener("click", (e) => {
-    const btnFav = e.target.closest(".btn-favoritar");
-    if (!btnFav) return;
-    e.stopPropagation();
-
-    const usuarioAtivo = JSON.parse(localStorage.getItem("usuario_logado"));
-    if (!usuarioAtivo || usuarioAtivo.tipo !== "cliente") {
-      const modalAviso = new bootstrap.Modal(
-        document.getElementById("modalAvisoLogin"),
-      );
-      modalAviso.show();
-      return;
     }
 
-    const nome = btnFav.getAttribute("data-nome");
-    const img = btnFav.getAttribute("data-img");
-    const servicos = btnFav.getAttribute("data-servicos");
-    const chave = `favoritos_${usuarioAtivo.email}`;
-    const favoritos = JSON.parse(localStorage.getItem(chave)) || [];
+    // --- FAVORITAR SALAO ---
+    document.addEventListener('click', (e) => {
+        const btnFav = e.target.closest('.btn-favoritar');
+        if (!btnFav) return;
+        e.stopPropagation();
 
-    const jaFavoritou = favoritos.findIndex((f) => f.nome === nome);
-    const icone = btnFav.querySelector("i");
+        const usuarioAtivo = JSON.parse(localStorage.getItem('usuario_logado'));
+        if (!usuarioAtivo || usuarioAtivo.tipo !== 'cliente') {
+            const modalAviso = new bootstrap.Modal(document.getElementById('modalAvisoLogin'));
+            modalAviso.show();
+            return;
+        }
 
-    if (jaFavoritou >= 0) {
-      favoritos.splice(jaFavoritou, 1);
-      icone.classList.remove("bi-heart-fill");
-      icone.classList.add("bi-heart");
-      btnFav.classList.remove("btn-danger");
-      btnFav.classList.add("btn-outline-danger");
-    } else {
-      favoritos.push({ nome, img, servicos });
-      icone.classList.remove("bi-heart");
-      icone.classList.add("bi-heart-fill");
-      btnFav.classList.remove("btn-outline-danger");
-      btnFav.classList.add("btn-danger");
+        const nome = btnFav.getAttribute('data-nome');
+        const img = btnFav.getAttribute('data-img');
+        const servicos = btnFav.getAttribute('data-servicos');
+        const chave = `favoritos_${usuarioAtivo.email}`;
+        const favoritos = JSON.parse(localStorage.getItem(chave)) || [];
+
+        const jaFavoritou = favoritos.findIndex(f => f.nome === nome);
+        const icone = btnFav.querySelector('i');
+
+        if (jaFavoritou >= 0) {
+            favoritos.splice(jaFavoritou, 1);
+            icone.classList.remove('bi-heart-fill');
+            icone.classList.add('bi-heart');
+            btnFav.classList.remove('btn-danger');
+            btnFav.classList.add('btn-outline-danger');
+        } else {
+            favoritos.push({ nome, img, servicos });
+            icone.classList.remove('bi-heart');
+            icone.classList.add('bi-heart-fill');
+            btnFav.classList.remove('btn-outline-danger');
+            btnFav.classList.add('btn-danger');
+        }
+        localStorage.setItem(chave, JSON.stringify(favoritos));
+    });
+
+    // Marcar favoritos ja existentes ao carregar
+    const sessaoFav = JSON.parse(localStorage.getItem('usuario_logado'));
+    if (sessaoFav && sessaoFav.tipo === 'cliente') {
+        const favs = JSON.parse(localStorage.getItem(`favoritos_${sessaoFav.email}`)) || [];
+        document.querySelectorAll('.btn-favoritar').forEach(btn => {
+            const nome = btn.getAttribute('data-nome');
+            if (favs.find(f => f.nome === nome)) {
+                const icone = btn.querySelector('i');
+                icone.classList.remove('bi-heart');
+                icone.classList.add('bi-heart-fill');
+                btn.classList.remove('btn-outline-danger');
+                btn.classList.add('btn-danger');
+            }
+        });
     }
-    localStorage.setItem(chave, JSON.stringify(favoritos));
-  });
 
-  // Marcar favoritos ja existentes ao carregar
-  const sessaoFav = JSON.parse(localStorage.getItem("usuario_logado"));
-  if (sessaoFav && sessaoFav.tipo === "cliente") {
-    const favs =
-      JSON.parse(localStorage.getItem(`favoritos_${sessaoFav.email}`)) || [];
-    document.querySelectorAll(".btn-favoritar").forEach((btn) => {
-      const nome = btn.getAttribute("data-nome");
-      if (favs.find((f) => f.nome === nome)) {
-        const icone = btn.querySelector("i");
-        icone.classList.remove("bi-heart");
-        icone.classList.add("bi-heart-fill");
-        btn.classList.remove("btn-outline-danger");
-        btn.classList.add("btn-danger");
-      }
-    });
-  }
+    // --- SISTEMA DE LOGIN E CADASTRO (COM REDIRECIONAMENTO AJUSTADO) ---
+    const salvarLocalmente = (usuario) => {
+        const banco = JSON.parse(localStorage.getItem('usuarios_pwa')) || [];
+        if (banco.find(u => u.email === usuario.email)) return alert("Este e-mail já está cadastrado!");
+        
+        banco.push(usuario);
+        localStorage.setItem('usuarios_pwa', JSON.stringify(banco));
+        localStorage.setItem('usuario_logado', JSON.stringify(usuario));
+        
+        alert("Cadastro realizado com sucesso!");
+        
+        // Regra de Redirecionamento
+        if (usuario.tipo === 'empresa') {
+            window.location.href = 'painel-empresa.html';
+        } else {
+            window.location.reload(); // Cliente fica na página
+        }
+    };
 
-  // --- SISTEMA DE LOGIN E CADASTRO (COM REDIRECIONAMENTO AJUSTADO) ---
-  const salvarLocalmente = (usuario) => {
-    const banco = JSON.parse(localStorage.getItem("usuarios_pwa")) || [];
-    if (banco.find((u) => u.email === usuario.email))
-      return alert("Este e-mail já está cadastrado!");
+    const realizarLogin = (email, senha, tipoDesejado) => {
+        const banco = JSON.parse(localStorage.getItem('usuarios_pwa')) || [];
+        const user = banco.find(u => u.email === email.toLowerCase().trim() && u.senha === senha);
+        
+        if (!user || user.tipo !== tipoDesejado) return alert("E-mail ou senha incorretos.");
+        
+        localStorage.setItem('usuario_logado', JSON.stringify(user));
 
-    banco.push(usuario);
-    localStorage.setItem("usuarios_pwa", JSON.stringify(banco));
-    localStorage.setItem("usuario_logado", JSON.stringify(usuario));
+        // Regra de Redirecionamento
+        if (user.tipo === 'empresa') {
+            window.location.href = 'painel-empresa.html';
+        } else {
+            window.location.reload(); // Cliente fica na página
+        }
+    };
 
-    alert("Cadastro realizado com sucesso!");
-
-    // Regra de Redirecionamento
-    if (usuario.tipo === "empresa") {
-      window.location.href = "painel-empresa.html";
-    } else {
-      window.location.reload(); // Cliente fica na página
-    }
-  };
-
-  const realizarLogin = (email, senha, tipoDesejado) => {
-    const banco = JSON.parse(localStorage.getItem("usuarios_pwa")) || [];
-    const user = banco.find(
-      (u) => u.email === email.toLowerCase().trim() && u.senha === senha,
-    );
-
-    if (!user || user.tipo !== tipoDesejado)
-      return alert("E-mail ou senha incorretos.");
-
-    localStorage.setItem("usuario_logado", JSON.stringify(user));
-
-    // Regra de Redirecionamento
-    if (user.tipo === "empresa") {
-      window.location.href = "painel-empresa.html";
-    } else {
-      window.location.reload(); // Cliente fica na página
-    }
-  };
-
-  // Listeners dos formulários
-  const fCadUser = document.getElementById("formCadUsuario");
-  if (fCadUser)
-    fCadUser.addEventListener("submit", (e) => {
-      e.preventDefault();
-      if (
-        document.getElementById("cad-senha-usuario").value !==
-        document.getElementById("cad-confirmar-senha-usuario").value
-      )
-        return alert("Senhas não coincidem!");
-      salvarLocalmente({
-        nome: document.getElementById("cad-nome-usuario").value.trim(),
-        sobrenome: document
-          .getElementById("cad-sobrenome-usuario")
-          .value.trim(),
-        telefone: document.getElementById("cad-telefone-usuario").value.trim(), // ADICIONE ESTA LINHA
-        email: document
-          .getElementById("cad-email-usuario")
-          .value.toLowerCase()
-          .trim(),
-        senha: document.getElementById("cad-senha-usuario").value,
-        tipo: "cliente",
-      });
+    // Listeners dos formulários
+    const fCadUser = document.getElementById('formCadUsuario');
+    if(fCadUser) fCadUser.addEventListener('submit', (e) => {
+        e.preventDefault();
+        if (document.getElementById('cad-senha-usuario').value !== document.getElementById('cad-confirmar-senha-usuario').value) return alert("Senhas não coincidem!");
+        salvarLocalmente({
+            nome: document.getElementById('cad-nome-usuario').value.trim(),
+            sobrenome: document.getElementById('cad-sobrenome-usuario').value.trim(),
+            email: document.getElementById('cad-email-usuario').value.toLowerCase().trim(),
+            senha: document.getElementById('cad-senha-usuario').value,
+            tipo: 'cliente'
+        });
     });
 
-  const fCadEmp = document.getElementById("formCadEmpresa");
-  if (fCadEmp)
-    fCadEmp.addEventListener("submit", (e) => {
-      e.preventDefault();
-      if (
-        document.getElementById("cad-senha-empresa").value !==
-        document.getElementById("cad-confirmar-senha-empresa").value
-      )
-        return alert("Senhas não coincidem!");
-      salvarLocalmente({
-        nomeFantasia: document.getElementById("cad-nome-fantasia").value.trim(),
-        razaoSocial: document.getElementById("cad-razao-social").value.trim(),
-        email: document
-          .getElementById("cad-email-empresa")
-          .value.toLowerCase()
-          .trim(),
-        senha: document.getElementById("cad-senha-empresa").value,
-        tipo: "empresa",
-      });
+    const fCadEmp = document.getElementById('formCadEmpresa');
+    if(fCadEmp) fCadEmp.addEventListener('submit', (e) => {
+        e.preventDefault();
+        if (document.getElementById('cad-senha-empresa').value !== document.getElementById('cad-confirmar-senha-empresa').value) return alert("Senhas não coincidem!");
+        salvarLocalmente({
+            nomeFantasia: document.getElementById('cad-nome-fantasia').value.trim(),
+            razaoSocial: document.getElementById('cad-razao-social').value.trim(),
+            email: document.getElementById('cad-email-empresa').value.toLowerCase().trim(),
+            senha: document.getElementById('cad-senha-empresa').value,
+            tipo: 'empresa'
+        });
     });
 
-  const fLogUser = document.getElementById("formLoginUsuario");
-  if (fLogUser)
-    fLogUser.addEventListener("submit", (e) => {
-      e.preventDefault();
-      realizarLogin(
-        document.getElementById("login-email-usuario").value,
-        document.getElementById("login-senha-usuario").value,
-        "cliente",
-      );
+    const fLogUser = document.getElementById('formLoginUsuario');
+    if(fLogUser) fLogUser.addEventListener('submit', (e) => {
+        e.preventDefault();
+        realizarLogin(document.getElementById('login-email-usuario').value, document.getElementById('login-senha-usuario').value, 'cliente');
     });
 
-  const fLogEmp = document.getElementById("formLoginEmpresa");
-  if (fLogEmp)
-    fLogEmp.addEventListener("submit", (e) => {
-      e.preventDefault();
-      realizarLogin(
-        document.getElementById("login-email-empresa").value,
-        document.getElementById("login-senha-empresa").value,
-        "empresa",
-      );
+    const fLogEmp = document.getElementById('formLoginEmpresa');
+    if(fLogEmp) fLogEmp.addEventListener('submit', (e) => {
+        e.preventDefault();
+        realizarLogin(document.getElementById('login-email-empresa').value, document.getElementById('login-senha-empresa').value, 'empresa');
     });
 
-  // --- DROPDOWN DE SESSÃO ATIVA ---
-  const sessao = JSON.parse(localStorage.getItem("usuario_logado"));
-  if (sessao) {
-    const headerAction = document.querySelector(".header-action");
-    const btnLoginOriginal = document.querySelector(
-      'button[data-bs-target="#modalLogin"]',
-    );
-    if (headerAction && btnLoginOriginal) {
-      const nomeExibicao = (sessao.nome || sessao.nomeFantasia).split(" ")[0];
-      headerAction.innerHTML = `
+    // --- DROPDOWN DE SESSÃO ATIVA ---
+    const sessao = JSON.parse(localStorage.getItem('usuario_logado'));
+    if (sessao) {
+        const headerAction = document.querySelector('.header-action');
+        const btnLoginOriginal = document.querySelector('button[data-bs-target="#modalLogin"]');
+        if (headerAction && btnLoginOriginal) {
+            const nomeExibicao = (sessao.nome || sessao.nomeFantasia).split(' ')[0];
+            headerAction.innerHTML = `
                 <button id="btn-notificacao" class="btn btn-link text-dark position-relative p-0 border-0 me-3">
                     <i class="bi bi-bell fs-4"></i>
                     <span id="badge-notificacao" class="position-absolute top-0 start-100 translate-middle p-1 bg-success border border-light rounded-circle d-none"></span>
@@ -665,192 +763,176 @@ document.addEventListener("DOMContentLoaded", () => {
                         <i class="bi bi-person-circle me-2"></i> ${nomeExibicao}
                     </button>
                     <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2 rounded-3">
-                        <li><a class="dropdown-item py-2" href="${sessao.tipo === "empresa" ? "painel-empresa.html" : "painel-usuario.html"}"><i class="bi bi-person me-2"></i>Meu Painel</a></li>
+                        <li><a class="dropdown-item py-2" href="${sessao.tipo === 'empresa' ? 'painel-empresa.html' : 'painel-usuario.html'}"><i class="bi bi-person me-2"></i>Meu Painel</a></li>
                         <li><hr class="dropdown-divider"></li>
                         <li><a class="dropdown-item py-2 text-danger" href="#" id="fazerLogout"><i class="bi bi-box-arrow-right me-2"></i>Sair</a></li>
                     </ul>
                 </div>`;
-      document.getElementById("fazerLogout").addEventListener("click", () => {
-        localStorage.removeItem("usuario_logado");
-        window.location.reload();
-      });
+            document.getElementById('fazerLogout').addEventListener('click', () => {
+                localStorage.removeItem('usuario_logado');
+                window.location.reload();
+            });
+        }
     }
-  }
 });
 
 // --- NOTIFICAÇÕES E LEMBRETES DE AGENDAMENTO ---
-document.addEventListener("DOMContentLoaded", () => {
-  const btnNotificacao = document.getElementById("btn-notificacao");
-  const badge = document.getElementById("badge-notificacao");
-  if (Notification.permission === "granted" && badge)
-    badge.classList.remove("d-none");
-  if (btnNotificacao) {
-    btnNotificacao.addEventListener("click", async () => {
-      if (!("Notification" in window)) return alert("Navegador sem suporte.");
-      const permissao = await Notification.requestPermission();
-      if (permissao === "granted") {
-        alert(
-          "Notificações ativadas! Você receberá lembretes dos seus agendamentos.",
-        );
-        if (badge) badge.classList.remove("d-none");
-      }
-    });
-  }
+document.addEventListener('DOMContentLoaded', () => {
+    const btnNotificacao = document.getElementById('btn-notificacao');
+    const badge = document.getElementById('badge-notificacao');
+    if (Notification.permission === 'granted' && badge) badge.classList.remove('d-none');
+    if (btnNotificacao) {
+        btnNotificacao.addEventListener('click', async () => {
+            if (!('Notification' in window)) return alert('Navegador sem suporte.');
+            const permissao = await Notification.requestPermission();
+            if (permissao === 'granted') {
+                alert('Notificações ativadas! Você receberá lembretes dos seus agendamentos.');
+                if(badge) badge.classList.remove('d-none');
+            }
+        });
+    }
 
-  // Iniciar verificacao de lembretes
-  iniciarLembretesAgendamento();
+    // Iniciar verificacao de lembretes
+    iniciarLembretesAgendamento();
 });
 
 // Sistema de lembretes de agendamento
 function iniciarLembretesAgendamento() {
-  if (!("Notification" in window)) return;
+    if (!('Notification' in window)) return;
 
-  // Verificar imediatamente e depois a cada 60 segundos
-  verificarAgendamentosProximos();
-  setInterval(verificarAgendamentosProximos, 60000);
+    // Verificar imediatamente e depois a cada 60 segundos
+    verificarAgendamentosProximos();
+    setInterval(verificarAgendamentosProximos, 60000);
 }
 
 function verificarAgendamentosProximos() {
-  if (Notification.permission !== "granted") return;
+    if (Notification.permission !== 'granted') return;
 
-  const sessao = JSON.parse(localStorage.getItem("usuario_logado"));
-  if (!sessao || sessao.tipo !== "cliente") return;
+    const sessao = JSON.parse(localStorage.getItem('usuario_logado'));
+    if (!sessao || sessao.tipo !== 'cliente') return;
 
-  const agendamentos =
-    JSON.parse(localStorage.getItem(`agendamentos_${sessao.email}`)) || [];
-  const notificacoesEnviadas =
-    JSON.parse(localStorage.getItem(`notif_enviadas_${sessao.email}`)) || {};
-  const agora = new Date();
-  const hojeStr = `${agora.getFullYear()}-${String(agora.getMonth() + 1).padStart(2, "0")}-${String(agora.getDate()).padStart(2, "0")}`;
+    const agendamentos = JSON.parse(localStorage.getItem(`agendamentos_${sessao.email}`)) || [];
+    const notificacoesEnviadas = JSON.parse(localStorage.getItem(`notif_enviadas_${sessao.email}`)) || {};
+    const agora = new Date();
+    const hojeStr = `${agora.getFullYear()}-${String(agora.getMonth()+1).padStart(2,'0')}-${String(agora.getDate()).padStart(2,'0')}`;
 
-  agendamentos.forEach((ag, index) => {
-    if (ag.status !== "confirmado" && ag.status !== "pendente") return;
-    if (!ag.data || !ag.hora) return;
+    agendamentos.forEach((ag, index) => {
+        if (ag.status !== 'confirmado' && ag.status !== 'pendente') return;
+        if (!ag.data || !ag.hora) return;
 
-    const chaveNotifDia = `dia_${ag.data}_${index}`;
-    const chaveNotifHora = `hora_${ag.data}_${ag.hora}_${index}`;
+        const chaveNotifDia = `dia_${ag.data}_${index}`;
+        const chaveNotifHora = `hora_${ag.data}_${ag.hora}_${index}`;
 
-    // Notificacao do dia: se o agendamento e hoje e ainda nao notificou
-    if (ag.data === hojeStr && !notificacoesEnviadas[chaveNotifDia]) {
-      enviarNotificacao(
-        "Agendamento hoje!",
-        `Voce tem um agendamento em ${ag.salao || "um salao"} hoje as ${ag.hora}.`,
-        chaveNotifDia,
-        sessao.email,
-      );
-    }
+        // Notificacao do dia: se o agendamento e hoje e ainda nao notificou
+        if (ag.data === hojeStr && !notificacoesEnviadas[chaveNotifDia]) {
+            enviarNotificacao(
+                'Agendamento hoje!',
+                `Voce tem um agendamento em ${ag.salao || 'um salao'} hoje as ${ag.hora}.`,
+                chaveNotifDia,
+                sessao.email
+            );
+        }
 
-    // Notificacao da hora: se falta 1 hora ou menos e ainda nao notificou
-    const [horaAg, minAg] = ag.hora.split(":").map(Number);
-    const dataAgendamento = new Date(`${ag.data}T${ag.hora}:00`);
-    const diffMs = dataAgendamento.getTime() - agora.getTime();
-    const diffMinutos = diffMs / 60000;
+        // Notificacao da hora: se falta 1 hora ou menos e ainda nao notificou
+        const [horaAg, minAg] = ag.hora.split(':').map(Number);
+        const dataAgendamento = new Date(`${ag.data}T${ag.hora}:00`);
+        const diffMs = dataAgendamento.getTime() - agora.getTime();
+        const diffMinutos = diffMs / 60000;
 
-    if (
-      diffMinutos > 0 &&
-      diffMinutos <= 60 &&
-      !notificacoesEnviadas[chaveNotifHora]
-    ) {
-      const minRestantes = Math.round(diffMinutos);
-      enviarNotificacao(
-        "Agendamento em breve!",
-        `Faltam ${minRestantes} minuto(s) para seu agendamento em ${ag.salao || "um salao"} as ${ag.hora}.`,
-        chaveNotifHora,
-        sessao.email,
-      );
-    }
-  });
+        if (diffMinutos > 0 && diffMinutos <= 60 && !notificacoesEnviadas[chaveNotifHora]) {
+            const minRestantes = Math.round(diffMinutos);
+            enviarNotificacao(
+                'Agendamento em breve!',
+                `Faltam ${minRestantes} minuto(s) para seu agendamento em ${ag.salao || 'um salao'} as ${ag.hora}.`,
+                chaveNotifHora,
+                sessao.email
+            );
+        }
+    });
 
-  // Limpar notificacoes antigas (mais de 2 dias)
-  limparNotificacoesAntigas(sessao.email);
+    // Limpar notificacoes antigas (mais de 2 dias)
+    limparNotificacoesAntigas(sessao.email);
 }
 
 function enviarNotificacao(titulo, corpo, chaveNotif, email) {
-  try {
-    new Notification(titulo, {
-      body: corpo,
-      icon: "icon-192.png",
-      tag: chaveNotif,
-      requireInteraction: true,
-    });
+    try {
+        new Notification(titulo, {
+            body: corpo,
+            icon: 'icon-192.png',
+            tag: chaveNotif,
+            requireInteraction: true
+        });
 
-    // Marcar como enviada
-    const enviadas =
-      JSON.parse(localStorage.getItem(`notif_enviadas_${email}`)) || {};
-    enviadas[chaveNotif] = new Date().toISOString();
-    localStorage.setItem(`notif_enviadas_${email}`, JSON.stringify(enviadas));
-  } catch (e) {
-    console.error("Erro ao enviar notificacao:", e);
-  }
+        // Marcar como enviada
+        const enviadas = JSON.parse(localStorage.getItem(`notif_enviadas_${email}`)) || {};
+        enviadas[chaveNotif] = new Date().toISOString();
+        localStorage.setItem(`notif_enviadas_${email}`, JSON.stringify(enviadas));
+    } catch (e) {
+        console.error('Erro ao enviar notificacao:', e);
+    }
 }
 
 function limparNotificacoesAntigas(email) {
-  const enviadas =
-    JSON.parse(localStorage.getItem(`notif_enviadas_${email}`)) || {};
-  const limite = new Date();
-  limite.setDate(limite.getDate() - 2);
-  let mudou = false;
+    const enviadas = JSON.parse(localStorage.getItem(`notif_enviadas_${email}`)) || {};
+    const limite = new Date();
+    limite.setDate(limite.getDate() - 2);
+    let mudou = false;
 
-  Object.keys(enviadas).forEach((chave) => {
-    const dataEnvio = new Date(enviadas[chave]);
-    if (dataEnvio < limite) {
-      delete enviadas[chave];
-      mudou = true;
+    Object.keys(enviadas).forEach(chave => {
+        const dataEnvio = new Date(enviadas[chave]);
+        if (dataEnvio < limite) {
+            delete enviadas[chave];
+            mudou = true;
+        }
+    });
+
+    if (mudou) {
+        localStorage.setItem(`notif_enviadas_${email}`, JSON.stringify(enviadas));
     }
-  });
-
-  if (mudou) {
-    localStorage.setItem(`notif_enviadas_${email}`, JSON.stringify(enviadas));
-  }
 }
 
-document.addEventListener("DOMContentLoaded", function () {
-  const categorias = document.querySelectorAll(".category-item");
-  const cards = document.querySelectorAll(".card-salao");
-  const listingsSide = document.querySelector(".listings-side"); // Referência para o scroll
+document.addEventListener('DOMContentLoaded', function() {
+    const categorias = document.querySelectorAll('.category-item');
+    const cards = document.querySelectorAll('.card-salao');
+    const listingsSide = document.querySelector('.listings-side'); // Referência para o scroll
 
-  categorias.forEach((item) => {
-    item.style.cursor = "pointer";
+    categorias.forEach(item => {
+        item.style.cursor = 'pointer';
 
-    item.addEventListener("click", function () {
-      // Prioriza o data-categoria, senão pega o texto do parágrafo
-      const filtro = (
-        this.getAttribute("data-categoria") || this.querySelector("p").innerText
-      )
-        .toLowerCase()
-        .trim();
+        item.addEventListener('click', function() {
+            // Prioriza o data-categoria, senão pega o texto do parágrafo
+            const filtro = (this.getAttribute('data-categoria') || this.querySelector('p').innerText).toLowerCase().trim();
 
-      // Ação para o botão "Todos"
-      if (filtro === "todos") {
-        cards.forEach((card) => (card.style.display = "block"));
-        categorias.forEach((c) => (c.style.opacity = "1"));
-        if (listingsSide) listingsSide.scrollTop = 0;
-        return;
-      }
+            // Ação para o botão "Todos"
+            if (filtro === 'todos') {
+                cards.forEach(card => card.style.display = 'block');
+                categorias.forEach(c => c.style.opacity = '1');
+                if (listingsSide) listingsSide.scrollTop = 0; 
+                return;
+            }
 
-      // Mapeamento de termos (Ex: Manicure vira Unhas para bater com o card)
-      let termoBusca = filtro;
-      if (filtro === "manicure") termoBusca = "unhas";
+            // Mapeamento de termos (Ex: Manicure vira Unhas para bater com o card)
+            let termoBusca = filtro;
+            if (filtro === 'manicure') termoBusca = 'unhas';
 
-      cards.forEach((card) => {
-        const textoServicos = card
-          .querySelector(".card-text")
-          .innerText.toLowerCase();
+            cards.forEach(card => {
+                const textoServicos = card.querySelector('.card-text').innerText.toLowerCase();
+                
+                // Exibe se encontrar o termo, senão esconde
+                if (textoServicos.includes(termoBusca)) {
+                    card.style.display = 'block';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
 
-        // Exibe se encontrar o termo, senão esconde
-        if (textoServicos.includes(termoBusca)) {
-          card.style.display = "block";
-        } else {
-          card.style.display = "none";
-        }
-      });
+            // Feedback visual: destaca a categoria ativa e suaviza as outras
+            categorias.forEach(c => c.style.opacity = '0.5');
+            this.style.opacity = '1';
 
-      // Feedback visual: destaca a categoria ativa e suaviza as outras
-      categorias.forEach((c) => (c.style.opacity = "0.5"));
-      this.style.opacity = "1";
-
-      // No mobile, volta para o topo da lista ao filtrar
-      if (listingsSide) listingsSide.scrollTop = 0;
+            // No mobile, volta para o topo da lista ao filtrar
+            if (listingsSide) listingsSide.scrollTop = 0;
+        });
     });
-  });
 });
+
