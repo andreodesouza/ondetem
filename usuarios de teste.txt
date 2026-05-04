@@ -1,0 +1,15 @@
+Cliente:
+
+cliente@teste.com
+123
+
+Salão:
+
+ficticio1@email.com
+123
+
+ficticio2@email.com
+123
+
+ficticio3@email.com
+123
