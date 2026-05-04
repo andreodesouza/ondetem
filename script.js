@@ -7,6 +7,59 @@ if ("serviceWorker" in navigator) {
       .catch((err) => console.log("Erro SW:", err));
   });
 }
+// --- CONFIGURAÇÃO DE AMBIENTE DE TESTE ---
+const inicializarDadosFicticios = () => {
+    const banco = JSON.parse(localStorage.getItem("usuarios_pwa")) || [];
+    
+    // Lista de usuários a serem criados
+    const usuariosParaCriar = [
+        {
+            email: "ficticio1@email.com",
+            senha: "123",
+            tipo: "empresa",
+            nomeFantasia: "Studio Bella Donna",
+            razaoSocial: "Bella Donna LTDA"
+        },
+        {
+            email: "ficticio2@email.com",
+            senha: "123",
+            tipo: "empresa",
+            nomeFantasia: "Clínica Estética Flores",
+            razaoSocial: "Flores Estética ME"
+        },
+        {
+            email: "ficticio3@email.com",
+            senha: "123",
+            tipo: "empresa",
+            nomeFantasia: "Espaço Glow",
+            razaoSocial: "Glow Servicos de Beleza"
+        },
+        {
+            email: "cliente@teste.com",
+            senha: "123",
+            tipo: "cliente",
+            nome: "André",
+            sobrenome: "Oliveira",
+            telefone: "22999999999"
+        }
+    ];
+
+    let houveMudanca = false;
+    usuariosParaCriar.forEach(user => {
+        if (!banco.find(u => u.email === user.email)) {
+            banco.push(user);
+            houveMudanca = true;
+        }
+    });
+
+    if (houveMudanca) {
+        localStorage.setItem("usuarios_pwa", JSON.stringify(banco));
+        console.log("Dados de teste carregados no LocalStorage.");
+    }
+};
+
+// Executa a inicialização
+inicializarDadosFicticios();
 
 // --- FORCA DA SENHA ---
 function avaliarForcaSenha(senha) {
@@ -133,50 +186,58 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // --- CARREGAMENTO DINÂMICO DE SALÕES ---
-  const saloesIniciais = [
-    {
-      nome: "Studio Bella Donna",
-      email: "ficticio1@email.com",
-      lat: -22.901844995221147,
-      lng: -42.474725201148125,
-      servicos: "Cabelo • Unhas • Sobrancelhas",
-      img: "https://frizzar.com.br/blog/wp-content/uploads/2025/01/salao-de-beleza-moderno.webp",
-    },
-    {
-      nome: "Clínica Estética Flores",
-      email: "ficticio2@email.com",
-      lat: -22.930476325777267,
-      lng: -42.48981265383228,
-      servicos: "Rosto • Depilação • Massagem",
-      img: "https://s2.glbimg.com/Ha2q-YYa3pCWtwM4E51zi_p-POI=/940x523/e.glbimg.com/og/ed/f/original/2019/02/20/blow-dry-bar-del-mar-chairs-counter-853427.jpg",
-    },
-    {
-      nome: "Espaço Glow",
-      email: "ficticio3@email.com",
-      lat: -22.888828721719282,
-      lng: -42.467136122927414,
-      servicos: "Unhas • Sobrancelhas • Rosto",
-      img: "https://ferrante.com.br/wp-content/uploads/2024/11/decoracao-minimalista-salao.jpg.jpeg",
-    },
-  ];
+// --- CARREGAMENTO DINÂMICO SEM DUPLICAÇÃO ---
+const saloesIniciais = [
+  {
+    nome: "Studio Bella Donna",
+    email: "ficticio1@email.com",
+    lat: -22.901844995221147,
+    lng: -42.474725201148125,
+    servicos: "Cabelo • Unhas • Sobrancelhas",
+    img: "https://frizzar.com.br/blog/wp-content/uploads/2025/01/salao-de-beleza-moderno.webp",
+  },
+  {
+    nome: "Clínica Estética Flores",
+    email: "ficticio2@email.com",
+    lat: -22.930476325777267,
+    lng: -42.48981265383228,
+    servicos: "Rosto • Depilação • Massagem",
+    img: "https://s2.glbimg.com/Ha2q-YYa3pCWtwM4E51zi_p-POI=/940x523/e.glbimg.com/og/ed/f/original/2019/02/20/blow-dry-bar-del-mar-chairs-counter-853427.jpg",
+  },
+  {
+    nome: "Espaço Glow",
+    email: "ficticio3@email.com",
+    lat: -22.888828721719282,
+    lng: -42.467136122927414,
+    servicos: "Unhas • Sobrancelhas • Rosto",
+    img: "https://ferrante.com.br/wp-content/uploads/2024/11/decoracao-minimalista-salao.jpg.jpeg",
+  },
+];
 
-  const bancoUsuarios = JSON.parse(localStorage.getItem("usuarios_pwa")) || [];
-  const novosSaloes = bancoUsuarios.filter(
-    (u) => u.tipo === "empresa" && u.lat && u.lng,
-  );
-  const todosSaloes = [...saloesIniciais];
+const bancoUsuarios = JSON.parse(localStorage.getItem("usuarios_pwa")) || [];
+const novosSaloes = bancoUsuarios.filter(
+  (u) => u.tipo === "empresa" && u.lat && u.lng
+);
 
-  novosSaloes.forEach((emp) => {
-    todosSaloes.push({
-      nome: emp.nomeFantasia,
-      email: emp.email,
-      lat: emp.lat,
-      lng: emp.lng,
-      servicos: "Novo Parceiro • Saquarema",
-      img: "https://frizzar.com.br/blog/wp-content/uploads/2025/01/salao-de-beleza-moderno.webp",
-      isNovo: true,
-    });
+// Filtramos os salões iniciais: só mantemos os que NÃO foram editados/salvos no banco ainda
+const saloesFiltrados = saloesIniciais.filter(ini => 
+  !novosSaloes.some(novo => novo.email === ini.email)
+);
+
+// Agora juntamos os iniciais não editados com os novos/editados do banco
+const todosSaloes = [...saloesFiltrados];
+
+novosSaloes.forEach((emp) => {
+  todosSaloes.push({
+    nome: emp.nomeFantasia || emp.nome,
+    email: emp.email,
+    lat: emp.lat,
+    lng: emp.lng,
+    servicos: emp.servicos || "Novo Parceiro • Saquarema",
+    img: emp.img || "https://frizzar.com.br/blog/wp-content/uploads/2025/01/salao-de-beleza-moderno.webp",
+    isNovo: true,
   });
+});
 
   const marcadores = [];
   const containerCards = document.getElementById("container-cards");
